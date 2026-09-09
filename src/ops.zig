@@ -5,6 +5,12 @@ const std = @import("std");
 const proc = @import("./processor.zig");
 
 pub const NUL = 0;
+pub const DEC_Z = 0xC6;
+pub const DEC_ZX = 0xD6;
+pub const DEC_A = 0xCE;
+pub const DEC_AX = 0xDE;
+pub const DEX_I = 0xCA;
+pub const DEY_I = 0x88;
 pub const LDA_I = 0xA9;
 pub const LDA_Z = 0xA5;
 pub const LDA_ZX = 0xB5;
@@ -37,6 +43,12 @@ pub fn initOpTable() void {
         addOpTable(@intCast(ii), exec_ILLEG);
     }
 
+    addOpTable(DEC_Z, exec_DEC_Z);
+    addOpTable(DEC_ZX, exec_DEC_ZX);
+    addOpTable(DEC_A, exec_DEC_A);
+    addOpTable(DEC_AX, exec_DEC_AX);
+    addOpTable(DEX_I, exec_DEX_I);
+    addOpTable(DEY_I, exec_DEY_I);
     addOpTable(LDA_I, exec_LDA_I);
     addOpTable(LDA_Z, exec_LDA_Z);
     addOpTable(LDA_ZX, exec_LDA_ZX);
@@ -134,6 +146,76 @@ fn getIndirectYAddress(p: *proc.Processor) usize {
 fn exec_ILLEG(p: *proc.Processor, cy: *i32) void {
     std.log.info("illegal opcode {X:0>2} (cycle {d})", .{ p.mem.mem[p.pc], cy.* });
     cy.* = -1024;
+}
+
+fn exec_DEC(p: *proc.Processor, adr: usize) void {
+    var val: u16 = p.mem.mem[adr];
+    if (val == 0) {
+        val = 255;
+    } else {
+        val = val - 1;
+    }
+    p.mem.mem[adr] = @intCast(val);
+    p.setZeroFlag(val == 0);
+    p.setNegativeFlag(val & 0b10000000 != 0);
+}
+
+fn exec_DEC_Z(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running DEC_Z, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getZeropageAddress(p);
+    exec_DEC(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_DEC_ZX(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running DEC_ZX, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getZeropageXAddress(p);
+    exec_DEC(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_DEC_A(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running DEC_A, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteAddress(p);
+    exec_DEC(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_DEC_AX(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running DEC_Z, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteXAddress(p);
+    exec_DEC(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_DEX_I(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running DEX_I, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    var val : u16 = p.x;
+    if (val == 0) {
+        val = 0xFF;
+    } else {
+        val = val - 1;
+    }
+    p.x = @intCast(val);
+    cy.* = cy.* - 2;
+}
+
+fn exec_DEY_I(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running DEY_I, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    var val : u16 = p.y;
+    if (val == 0) {
+        val = 0xFF;
+    } else {
+        val = val - 1;
+    }
+    p.y = @intCast(val);
+    cy.* = cy.* - 2;
 }
 
 fn exec_LDA_I(p: *proc.Processor, cy: *i32) void {
@@ -375,6 +457,38 @@ fn runTest(program: []const u8) !proc.Processor {
     return p;
 }
 
+test "DEC_Z" {
+    var p = try runTest(&[_]u8{ LDA_I, 0x72, STA_Z, 0x10, DEC_Z, 0x10, LDA_Z, 0x10, 0x00 });
+    try std.testing.expect(p.ac == 0x71);
+    try std.testing.expect(!p.getZeroFlag());
+    try std.testing.expect(!p.getNegativeFlag());
+    (&p).deinit();
+}
+
+test "DEC_ZX" {
+    var p = try runTest(&[_]u8{ LDA_I, 0x72, LDX_I, 0x01, STA_Z, 0x11, DEC_ZX, 0x10, LDA_Z, 0x11, 0x00 });
+    try std.testing.expect(p.ac == 0x71);
+    try std.testing.expect(!p.getZeroFlag());
+    try std.testing.expect(!p.getNegativeFlag());
+    (&p).deinit();
+}
+
+test "DEC_A" {
+    var p = try runTest(&[_]u8{ LDA_I, 0x72, STA_A, 0x10, 0x20, DEC_A, 0x10, 0x20, LDA_A, 0x10, 0x20, 0x00 });
+    try std.testing.expect(p.ac == 0x71);
+    try std.testing.expect(!p.getZeroFlag());
+    try std.testing.expect(!p.getNegativeFlag());
+    (&p).deinit();
+}
+
+test "DEX_I" {
+    var p = try runTest(&[_]u8{ LDX_I, 0x22, DEX_I, 0x00 });
+    try std.testing.expect(p.x == 0x21);
+    try std.testing.expect(!p.getZeroFlag());
+    try std.testing.expect(!p.getNegativeFlag());
+    (&p).deinit();
+}
+
 test "LDA_I" {
     var p = try runTest(&[_]u8{ LDA_I, 0x82, 0x00 });
     try std.testing.expect(p.ac == 0x82);
@@ -406,6 +520,13 @@ test "LDA_ZX" {
 
 test "LDA_IX" {
     var p = try runTest(&[_]u8{ LDA_I, 0x10, STA_Z, 0x11, LDA_I, 0x20, STA_Z, 0x12, LDX_I, 0x01, LDA_I, 0x72, STA_A, 0x10, 0x20, LDA_I, 0xFF, LDA_IX, 0x10, 0x00 });
+    try std.testing.expect(p.ac == 0x72);
+    try std.testing.expect(!p.getZeroFlag());
+    (&p).deinit();
+}
+
+test "LDA_IY" {
+    var p = try runTest(&[_]u8{ LDA_I, 0x10, STA_Z, 0x10, LDA_I, 0x20, STA_Z, 0x11, LDY_I, 0x01, LDA_I, 0x72, STA_A, 0x11, 0x20, LDA_I, 0xFF, LDA_IY, 0x10, 0x00 });
     try std.testing.expect(p.ac == 0x72);
     try std.testing.expect(!p.getZeroFlag());
     (&p).deinit();
