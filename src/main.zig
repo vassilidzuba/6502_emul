@@ -51,9 +51,10 @@ pub fn main(init: std.process.Init) !void {
 
 
     const program2 = [_]u8{
-        ops.LDX_I, 0x22,
-        ops.DEX_I,
-        0x00};
+        ops.LDA_I, 0b00000011,
+        ops.AND_I, 0b00000001,
+        0x00
+    };
 
     p.reset();
     ops.setProgram(&p, &program2);

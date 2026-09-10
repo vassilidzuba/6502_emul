@@ -128,6 +128,14 @@ pub const Processor = struct {
     pub inline fn setNegativeFlag(self: *Processor, val: bool) void {
         setFlag(self, FLAG_NEGATIVE, val);
     }
+
+    pub inline fn getCarryFlag(self: *Processor) bool {
+        return getFlag(self, FLAG_CARRY);
+    }
+
+    pub inline fn setCarryFlag(self: *Processor, val: bool) void {
+        setFlag(self, FLAG_CARRY, val);
+    }
 };
 
 pub fn initProcessor(allocator: std.mem.Allocator, memsize: u16) !Processor {
