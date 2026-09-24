@@ -6,12 +6,10 @@ const Io = std.Io;
 const mem = @import("./memory.zig");
 const proc = @import("./processor.zig");
 const ops = @import("./ops.zig");
+const as = @import("./asm6502.zig");
 
 
 const _6502_emul = @import("_6502_emul");
-
-
-
 
 pub fn main(init: std.process.Init) !void {
     // Prints to stderr, unbuffered, ignoring potential errors.
@@ -23,44 +21,51 @@ pub fn main(init: std.process.Init) !void {
     var p = try proc.initProcessor(arena, 64_000);
     defer p.deinit();
 
-    try p.show();
+   // try p.show();
 
-    const program = [_]u8{
-        ops.LDA_I, 0xAA,
-        ops.LDX_I, 0xAB,
-        ops.LDY_I, 0xAC,
-        ops.STA_Z, 0x20,
-        ops.STX_Z, 0x21,
-        ops.STY_Z, 0x22,
-        ops.LDA_Z, 0x20,
-        ops.STA_Z, 0x30,
-        ops.LDX_Z, 0x21,
-        ops.STX_Z, 0x31,
-        ops.LDY_Z, 0x22,
-        ops.STY_Z, 0x32,
+    // const program = [_]u8{
+    //     ops.LDA_I, 0xAA,
+    //     ops.LDX_I, 0xAB,
+    //     ops.LDY_I, 0xAC,
+    //     ops.STA_Z, 0x20,
+    //     ops.STX_Z, 0x21,
+    //     ops.STY_Z, 0x22,
+    //     ops.LDA_Z, 0x20,
+    //     ops.STA_Z, 0x30,
+    //     ops.LDX_Z, 0x21,
+    //     ops.STX_Z, 0x31,
+    //     ops.LDY_Z, 0x22,
+    //     ops.STY_Z, 0x32,
 
-        0x0};
+    //     0x0};
 
     ops.initOpTable();
 
-    ops.setProgram(&p, &program);
+    //ops.setProgram(&p, &program);
 
-    ops.run(&p, 100);
+    //ops.run(&p, 100);
 
-    try p.show();
+    // try p.show();
 
 
-    const program2 = [_]u8{
-        ops.LDA_I, 0b00000011,
-        ops.AND_I, 0b00000001,
-        0x00
-    };
+    // const program2 = [_]u8{
+    //     ops.LDA_I, 0b00000011,
+    //     ops.AND_I, 0b00000001,
+    //     0x00
+    // };
 
     p.reset();
-    ops.setProgram(&p, &program2);
-    ops.run(&p, 100);
+    // ops.setProgram(&p, &program2);
+    // ops.run(&p, 100);
 
+    // try p.show();
+
+    p.reset();
+    try as.asm6502File(init.io, arena, &p, "testdata/prog1.6502");
     try p.show();
+    ops.run(&p, 100);
+    try p.show();
+
 }
 
 

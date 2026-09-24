@@ -29,14 +29,20 @@ pub const DEC_Z = 0xC6;
 pub const DEC_ZX = 0xD6;
 pub const DEC_A = 0xCE;
 pub const DEC_AX = 0xDE;
+
 pub const DEX_I = 0xCA;
+
 pub const DEY_I = 0x88;
+
 pub const INC_Z = 0xE6;
 pub const INC_ZX = 0xF6;
 pub const INC_A = 0xEE;
 pub const INC_AX = 0xFE;
+
 pub const INX_I = 0xE8;
+
 pub const INY_I = 0xC8;
+
 pub const LDA_I = 0xA9;
 pub const LDA_Z = 0xA5;
 pub const LDA_ZX = 0xB5;
@@ -45,15 +51,26 @@ pub const LDA_AX = 0xBD;
 pub const LDA_AY = 0xB9;
 pub const LDA_IX = 0xA1;
 pub const LDA_IY = 0xB1;
+
 pub const LDX_I = 0xA2;
 pub const LDX_Z = 0xA6;
+pub const LDX_ZY = 0xB6;
+pub const LDX_A = 0xAE;
+pub const LDX_AY = 0xBE;
+
 pub const LDY_I = 0xA0;
 pub const LDY_Z = 0xA4;
+pub const LDY_ZX = 0xB4;
+pub const LDY_A = 0xAC;
+pub const LDY_AX = 0xBC;
+
 pub const STA_Z = 0x85;
 pub const STA_A = 0x8D;
+
 pub const STX_Z = 0x86;
 pub const STX_ZY = 0x96;
 pub const STX_A = 0x8E;
+
 pub const STY_Z = 0x84;
 pub const STY_ZX = 0x94;
 pub const STY_A = 0x8C;
@@ -111,15 +128,26 @@ pub fn initOpTable() void {
     addOpTable(LDA_AY, exec_LDA_AY);
     addOpTable(LDA_IX, exec_LDA_IX);
     addOpTable(LDA_IY, exec_LDA_IY);
+
     addOpTable(LDX_I, exec_LDX_I);
     addOpTable(LDX_Z, exec_LDX_Z);
+    addOpTable(LDX_ZY, exec_LDX_ZY);
+    addOpTable(LDX_A, exec_LDX_A);
+    addOpTable(LDX_AY, exec_LDX_AY);
+
     addOpTable(LDY_I, exec_LDY_I);
     addOpTable(LDY_Z, exec_LDY_Z);
+    addOpTable(LDY_ZX, exec_LDY_ZX);
+    addOpTable(LDY_A, exec_LDY_A);
+    addOpTable(LDY_AX, exec_LDY_AX);
+
     addOpTable(STA_Z, exec_STA_Z);
     addOpTable(STA_A, exec_STA_A);
+
     addOpTable(STX_Z, exec_STX_Z);
     addOpTable(STX_ZY, exec_STX_ZY);
     addOpTable(STX_A, exec_STX_A);
+
     addOpTable(STY_Z, exec_STY_Z);
     addOpTable(STY_ZX, exec_STY_ZX);
     addOpTable(STY_A, exec_STY_A);
@@ -632,6 +660,39 @@ fn exec_LDX_Z(p: *proc.Processor, cy: *i32) void {
     cy.* = cy.* - 2;
 }
 
+fn exec_LDX_ZY(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LDX_ZY, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getZeropageYAddress(p);
+    const val = p.mem.mem[adr];
+    p.x = val;
+    p.setZeroFlag(val == 0);
+    p.setNegativeFlag(val & 0b10000000 != 0);
+    cy.* = cy.* - 2;
+}
+
+fn exec_LDX_A(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LDA_ZY, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteAddress(p);
+    const val = p.mem.mem[adr];
+    p.x = val;
+    p.setZeroFlag(val == 0);
+    p.setNegativeFlag(val & 0b10000000 != 0);
+    cy.* = cy.* - 2;
+}
+
+fn exec_LDX_AY(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LDX_AY, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteYAddress(p);
+    const val = p.mem.mem[adr];
+    p.x = val;
+    p.setZeroFlag(val == 0);
+    p.setNegativeFlag(val & 0b10000000 != 0);
+    cy.* = cy.* - 2;
+}
+
 fn exec_LDY_I(p: *proc.Processor, cy: *i32) void {
     std.log.info("running LDY_I, (cycle {d})", .{cy.*});
     p.pc = p.pc + 1;
@@ -647,6 +708,40 @@ fn exec_LDY_Z(p: *proc.Processor, cy: *i32) void {
     std.log.info("running LDY_Z, (cycle {d})", .{cy.*});
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
+    const val = p.mem.mem[adr];
+    p.y = val;
+    p.setZeroFlag(val == 0);
+    p.setNegativeFlag(val & 0b10000000 != 0);
+    cy.* = cy.* - 2;
+}
+
+fn exec_LDY_ZX(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LDY_ZX, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getZeropageXAddress(p);
+    const val = p.mem.mem[adr];
+    p.y = val;
+    p.setZeroFlag(val == 0);
+    p.setNegativeFlag(val & 0b10000000 != 0);
+    cy.* = cy.* - 2;
+}
+
+fn exec_LDY_A(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LDY_A, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteAddress(p);
+    const val = p.mem.mem[adr];
+    p.y = val;
+    p.setZeroFlag(val == 0);
+    p.setNegativeFlag(val & 0b10000000 != 0);
+    cy.* = cy.* - 2;
+}
+
+
+fn exec_LDY_AX(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LDY_AX, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteXAddress(p);
     const val = p.mem.mem[adr];
     p.y = val;
     p.setZeroFlag(val == 0);

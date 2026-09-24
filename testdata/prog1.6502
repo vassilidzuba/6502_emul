@@ -1,0 +1,6 @@
+     LDA #$10
+     STA $02
+     STA $1000
+     LDX #$01
+     LDA $01,X
+     STA $1001
