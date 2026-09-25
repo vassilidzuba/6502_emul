@@ -64,105 +64,95 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
         if (std.mem.eql(u8, tk.buf[0..tk.pos], "LDA")) {
             const tk2: Token = try nextToken(creader);
 
-            if (tk2.tkt == tkt_immediate) {
-                p.mem.mem[pos] = ops.LDA_I;
-                pos = pos + 1;
-                p.mem.mem[pos] = try getImmediate(tk2.buf[0..tk2.pos]);
-                pos = pos + 1;
-            } else if (tk2.tkt == tkt_zeropage) {
-                p.mem.mem[pos] = ops.LDA_Z;
-                pos = pos + 1;
-                p.mem.mem[pos] = try getZeropage(tk2.buf[0..tk2.pos]);
-                pos = pos + 1;
-            } else if (tk2.tkt == tkt_zeropage_x) {
-                p.mem.mem[pos] = ops.LDA_ZX;
-                pos = pos + 1;
-                p.mem.mem[pos] = try getZeropage(tk2.buf[0..tk2.pos - 2]);
-                pos = pos + 1;
-            } else if (tk2.tkt == tkt_absolute) {
-                p.mem.mem[pos] = ops.LDA_A;
-                pos = pos + 1;
-                const address = try getAbsolute(tk2.buf[0..tk2.pos]);
-                p.mem.mem[pos] = @intCast(address & 0x00FF);
-                pos = pos + 1;
-                p.mem.mem[pos] = @intCast(address >> 8);
-                pos = pos + 1;
-            }
+            pos = try insertImmediate(&tk2, p, pos, ops.LDA_I);
+            pos = try insertZeropage(&tk2, p, pos, ops.LDA_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.LDA_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.LDA_A);
+
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "LDX")) {
             const tk2: Token = try nextToken(creader);
 
-            if (tk2.tkt == tkt_immediate) {
-                p.mem.mem[pos] = ops.LDX_I;
-                pos = pos + 1;
-                p.mem.mem[pos] = try getImmediate(tk2.buf[0..tk2.pos]);
-                pos = pos + 1;
-            } else if (tk2.tkt == tkt_zeropage) {
-                p.mem.mem[pos] = ops.LDX_Z;
-                pos = pos + 1;
-                p.mem.mem[pos] = try getZeropage(tk2.buf[0..tk2.pos]);
-                pos = pos + 1;
-            } else if (tk2.tkt == tkt_zeropage_y) {
-                p.mem.mem[pos] = ops.LDX_ZY;
-                pos = pos + 1;
-                p.mem.mem[pos] = try getZeropage(tk2.buf[0..tk2.pos - 2]);
-                pos = pos + 1;
-            } else if (tk2.tkt == tkt_absolute) {
-                p.mem.mem[pos] = ops.LDX_A;
-                pos = pos + 1;
-                const address = try getAbsolute(tk2.buf[0..tk2.pos]);
-                p.mem.mem[pos] = @intCast(address & 0x00FF);
-                pos = pos + 1;
-                p.mem.mem[pos] = @intCast(address >> 8);
-                pos = pos + 1;
-            }
+            pos = try insertImmediate(&tk2, p, pos, ops.LDX_I);
+            pos = try insertZeropage(&tk2, p, pos, ops.LDX_Z);
+            pos = try insertZeropageY(&tk2, p, pos, ops.LDX_ZY);
+            pos = try insertAbsolute(&tk2, p, pos, ops.LDX_A);
+
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "LDY")) {
             const tk2: Token = try nextToken(creader);
 
-            if (tk2.tkt == tkt_immediate) {
-                p.mem.mem[pos] = ops.LDY_I;
-                pos = pos + 1;
-                p.mem.mem[pos] = try getImmediate(tk2.buf[0..tk2.pos]);
-                pos = pos + 1;
-            } else if (tk2.tkt == tkt_zeropage) {
-                p.mem.mem[pos] = ops.LDY_Z;
-                pos = pos + 1;
-                p.mem.mem[pos] = try getZeropage(tk2.buf[0..tk2.pos]);
-                pos = pos + 1;
-            } else if (tk2.tkt == tkt_zeropage_x) {
-                p.mem.mem[pos] = ops.LDY_ZX;
-                pos = pos + 1;
-                p.mem.mem[pos] = try getZeropage(tk2.buf[0..tk2.pos - 2]);
-                pos = pos + 1;
-            } else if (tk2.tkt == tkt_absolute) {
-                p.mem.mem[pos] = ops.LDY_A;
-                pos = pos + 1;
-                const address = try getAbsolute(tk2.buf[0..tk2.pos]);
-                p.mem.mem[pos] = @intCast(address & 0x00FF);
-                pos = pos + 1;
-                p.mem.mem[pos] = @intCast(address >> 8);
-                pos = pos + 1;
-            }
+            pos = try insertImmediate(&tk2, p, pos, ops.LDY_I);
+            pos = try insertZeropage(&tk2, p, pos, ops.LDY_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.LDY_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.LDY_A);
+
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "STA")) {
             const tk2: Token = try nextToken(creader);
 
-            if (tk2.tkt == tkt_zeropage) {
-                p.mem.mem[pos] = ops.STA_Z;
-                pos = pos + 1;
-                p.mem.mem[pos] = try getZeropage(tk2.buf[0..tk2.pos]);
-                pos = pos + 1;
-            } else if (tk2.tkt == tkt_absolute) {
-                p.mem.mem[pos] = ops.STA_A;
-                pos = pos + 1;
-                const address = try getAbsolute(tk2.buf[0..tk2.pos]);
-                p.mem.mem[pos] = @intCast(address & 0x00FF);
-                pos = pos + 1;
-                p.mem.mem[pos] = @intCast(address >> 8);
-                pos = pos + 1;
-            }
+            pos = try insertZeropage(&tk2, p, pos, ops.STA_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.STA_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.STA_A);
         } else {
             return AsmErrors.unknownOpcode;
         }
     }
+}
+
+fn insertImmediate(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_immediate) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        p.mem.mem[pc] = try getImmediate(tk.buf[0..tk.pos]);
+        pc = pc + 1;
+    }
+    return pc;
+}
+
+fn insertZeropage(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_zeropage) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        p.mem.mem[pc] = try getZeropage(tk.buf[0..tk.pos]);
+        pc = pc + 1;
+    }
+    return pc;
+}
+
+fn insertZeropageX(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_zeropage_x) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        p.mem.mem[pc] = try getZeropage(tk.buf[0..tk.pos - 2]);
+        pc = pc + 1;
+    }
+    return pc;
+}
+
+fn insertZeropageY(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_zeropage_y) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        p.mem.mem[pc] = try getZeropage(tk.buf[0..tk.pos]);
+        pc = pc + 1;
+    }
+    return pc;
+}
+
+fn insertAbsolute(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_absolute) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        const address = try getAbsolute(tk.buf[0..tk.pos]);
+        p.mem.mem[pc] = @intCast(address & 0x00FF);
+        pc = pc + 1;
+        p.mem.mem[pc] = @intCast(address >> 8);
+        pc = pc + 1;
+    }
+    return pc;
 }
 
 fn nextToken(creader: *cr.CharReader) !Token {

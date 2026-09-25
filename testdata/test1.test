@@ -1,0 +1,6 @@
+run testdata/prog1.6502
+assert A $10
+assert X $01
+assert Y $00
+assert @02 $10
+assert @1000 $10

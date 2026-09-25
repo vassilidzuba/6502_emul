@@ -65,6 +65,7 @@ pub const LDY_A = 0xAC;
 pub const LDY_AX = 0xBC;
 
 pub const STA_Z = 0x85;
+pub const STA_ZX = 0x95;
 pub const STA_A = 0x8D;
 
 pub const STX_Z = 0x86;

@@ -20,7 +20,7 @@ pub const CharReader = struct {
             self.reader = file.reader(io, &self.buf);
         } else |err| switch (err) {
             error.FileNotFound, error.AccessDenied => {
-                std.log.info("unable to open file: {}\n", .{err});
+                std.log.info("unable to open file: {s}\n", .{file_path});
                 // loop back to try another or something
             },
             else => |e| return e, // don't continue; rather, bomb out
