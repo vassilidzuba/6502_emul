@@ -38,11 +38,18 @@ pub fn runTest(io: std.Io, allocator: std.mem.Allocator, file_path: []const u8) 
 
     var creader: cr.CharReader = undefined;
     try creader.initFromFilePath(io, allocator, file_path);
-    try runTestFromReader(io, allocator, &creader, &p);
+    if (runTestFromReader(io, allocator, &creader, &p)) |_| {
+        std.log.info("tests succeeded", .{});
+    } else |err| switch (err) {
+        TesterErrors.assertionFails => {
+            std.log.info("tests failed", .{});
+        },
+        else => |leftover_err| return leftover_err,
+    }
 }
 
 fn runTestFromReader(io: std.Io, allocator: std.mem.Allocator, creader: *cr.CharReader, p: *proc.Processor) !void {
-    var enabled : bool = true;
+    var enabled: bool = true;
 
     while (true) {
         const tk: Token = try nextToken(creader);
