@@ -1,0 +1,18 @@
+; test CLC
+
+; use carre
+CLC
+LDA #$80
+ADC #$80
+LDA #$10
+ADC #$20
+STA $1000
+
+; without carry
+CLC
+LDA #$80
+ADC #$80
+CLC
+LDA #$10
+ADC #$20
+STA $1001

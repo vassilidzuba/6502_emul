@@ -1,0 +1,5 @@
+; testing INX
+
+; implied
+LDY #$10
+INY

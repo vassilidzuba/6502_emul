@@ -42,23 +42,27 @@ pub fn runTest(io: std.Io, allocator: std.mem.Allocator, file_path: []const u8) 
 }
 
 fn runTestFromReader(io: std.Io, allocator: std.mem.Allocator, creader: *cr.CharReader, p: *proc.Processor) !void {
+    var enabled : bool = true;
+
     while (true) {
         const tk: Token = try nextToken(creader);
-
-        //tk.show();
 
         if (tk.tkt == tkt_eol) {
             continue;
         } else if (tk.tkt == tkt_eof) {
             break;
-        } else if (std.mem.eql(u8, tk.slice(), "run")) {
+        } else if (std.mem.eql(u8, tk.slice(), "enable")) {
+            enabled = true;
+        } else if (std.mem.eql(u8, tk.slice(), "disable")) {
+            enabled = false;
+        } else if (std.mem.eql(u8, tk.slice(), "run") and enabled) {
             const tk2: Token = try nextToken(creader);
             p.reset();
             try as.asm6502File(io, allocator, p, tk2.slice());
             try p.show();
-            ops.run(p, 100);
+            ops.run(p, 10000);
             try p.show();
-        } else if (std.mem.eql(u8, tk.slice(), "assert")) {
+        } else if (std.mem.eql(u8, tk.slice(), "assert") and enabled) {
             const tk2: Token = try nextToken(creader);
             const addr = tk2.slice();
             const tk3: Token = try nextToken(creader);
@@ -178,9 +182,9 @@ pub fn getDigit(ch: u8) !u8 {
     if ('0' <= ch and '9' >= ch) {
         return ch - '0';
     } else if ('A' <= ch and 'F' >= ch) {
-        return ch - 'A';
+        return ch - 'A' + 10;
     } else if ('a' <= ch and 'f' >= ch) {
-        return ch - 'a';
+        return ch - 'a' + 10;
     } else {
         std.log.info(">>> illegal hex digit : {c}", .{ch});
         return TesterErrors.illegalHexDigit;

@@ -1,0 +1,23 @@
+; testing INC address modes
+
+; zeropage
+LDA #$10
+STA $10
+INC $10
+
+; zeropage indexed by X
+LDA #$20
+STA $11
+LDX #$01
+INC $10,X
+
+; absolute
+LDA #$30
+STA $1000
+INC $1000
+
+; absolute indexed by X
+LDA #$40
+STA $1001
+LDX #$01
+INC $1000,X

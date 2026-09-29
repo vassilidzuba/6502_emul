@@ -1,0 +1,5 @@
+; testing DEY
+
+; implied
+LDY #$10
+DEY

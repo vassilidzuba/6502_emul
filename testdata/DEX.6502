@@ -1,0 +1,5 @@
+; testing DEX
+
+; implied
+LDX #$10
+DEX

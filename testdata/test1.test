@@ -1,6 +1,59 @@
-run testdata/prog1.6502
-assert A $10
-assert X $01
-assert Y $00
-assert @02 $10
-assert @1000 $10
+disable
+run testdata/LDA.6502
+assert @1000 $01
+assert @1001 $02
+assert @1002 $03
+assert @1003 $04
+assert @1004 $05
+assert @1005 $06
+assert @1006 $07
+assert @1007 $08
+
+run testdata/STA.6502
+assert @10 $01
+assert @11 $02
+assert @1000 $03
+assert @1001 $04
+assert @1002 $05
+assert @1003 $06
+assert @1004 $07
+
+run testdata/INC.6502
+assert @10 $11
+assert @11 $21
+assert @1000 $31
+assert @1001 $41
+
+run testdata/DEC.6502
+assert @10 $0F
+assert @11 $1F
+assert @1000 $2F
+assert @1001 $3F
+
+run testdata/DEX.6502
+assert X $0F
+
+run testdata/INX.6502
+assert X $11
+
+run testdata/DEY.6502
+assert Y $0F
+
+run testdata/INY.6502
+assert Y $11
+
+run testdata/ADC.6502
+assert @1000 $30
+assert @1001 $31
+assert @1002 $32
+assert @1003 $33
+assert @1004 $34
+assert @1005 $35
+assert @1006 $36
+assert @1007 $37
+assert @1008 $31
+
+enable
+run testdata/CLC.6502
+assert @1000 $31
+assert @1001 $30

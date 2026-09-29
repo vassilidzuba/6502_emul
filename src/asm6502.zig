@@ -18,6 +18,8 @@ const tkt_zeropage_y: u8 = 9;
 const tkt_absolute: u8 = 10;
 const tkt_absolute_x: u8 = 11;
 const tkt_absolute_y: u8 = 12;
+const tkt_indirect_x: u8 = 13;
+const tkt_indirect_y: u8 = 14;
 
 const AsmErrors = error{
     illegalParameter,
@@ -68,6 +70,10 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertZeropage(&tk2, p, pos, ops.LDA_Z);
             pos = try insertZeropageX(&tk2, p, pos, ops.LDA_ZX);
             pos = try insertAbsolute(&tk2, p, pos, ops.LDA_A);
+            pos = try insertAbsoluteX(&tk2, p, pos, ops.LDA_AX);
+            pos = try insertAbsoluteY(&tk2, p, pos, ops.LDA_AY);
+            pos = try insertIndirectX(&tk2, p, pos, ops.LDA_IX);
+            pos = try insertIndirectY(&tk2, p, pos, ops.LDA_IY);
 
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "LDX")) {
             const tk2: Token = try nextToken(creader);
@@ -85,16 +91,69 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertZeropageX(&tk2, p, pos, ops.LDY_ZX);
             pos = try insertAbsolute(&tk2, p, pos, ops.LDY_A);
 
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "INC")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertZeropage(&tk2, p, pos, ops.INC_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.INC_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.INC_A);
+            pos = try insertAbsoluteX(&tk2, p, pos, ops.INC_AX);
+
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "DEC")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertZeropage(&tk2, p, pos, ops.DEC_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.DEC_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.DEC_A);
+            pos = try insertAbsoluteX(&tk2, p, pos, ops.DEC_AX);
+
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "STA")) {
             const tk2: Token = try nextToken(creader);
 
             pos = try insertZeropage(&tk2, p, pos, ops.STA_Z);
             pos = try insertZeropageX(&tk2, p, pos, ops.STA_ZX);
             pos = try insertAbsolute(&tk2, p, pos, ops.STA_A);
+            pos = try insertAbsoluteX(&tk2, p, pos, ops.STA_AX);
+            pos = try insertAbsoluteY(&tk2, p, pos, ops.STA_AY);
+            pos = try insertIndirectX(&tk2, p, pos, ops.STA_IX);
+            pos = try insertIndirectY(&tk2, p, pos, ops.STA_IY);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "ADC")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertImmediate(&tk2, p, pos, ops.ADC_I);
+            pos = try insertZeropage(&tk2, p, pos, ops.ADC_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.ADC_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.ADC_A);
+            pos = try insertAbsoluteX(&tk2, p, pos, ops.ADC_AX);
+            pos = try insertAbsoluteY(&tk2, p, pos, ops.ADC_AY);
+            pos = try insertIndirectX(&tk2, p, pos, ops.ADC_IX);
+            pos = try insertIndirectY(&tk2, p, pos, ops.ADC_IY);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "DEX")) {
+
+            pos = try insertImplied(p, pos, ops.DEX_I);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "INX")) {
+
+            pos = try insertImplied(p, pos, ops.INX_I);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "DEY")) {
+
+            pos = try insertImplied(p, pos, ops.DEY_I);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "INY")) {
+
+            pos = try insertImplied(p, pos, ops.INY_I);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLC")) {
+
+            pos = try insertImplied(p, pos, ops.CLC_I);
         } else {
             return AsmErrors.unknownOpcode;
         }
     }
+}
+
+fn insertImplied(p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    p.mem.mem[pc] = opcode;
+    pc = pc + 1;
+    return pc;
 }
 
 fn insertImmediate(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
@@ -155,6 +214,58 @@ fn insertAbsolute(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) 
     return pc;
 }
 
+fn insertAbsoluteX(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_absolute_x) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        const address = try getAbsolute(tk.buf[0..tk.pos - 2]);
+        p.mem.mem[pc] = @intCast(address & 0x00FF);
+        pc = pc + 1;
+        p.mem.mem[pc] = @intCast(address >> 8);
+        pc = pc + 1;
+    }
+    return pc;
+}
+
+fn insertAbsoluteY(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_absolute_y) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        const address = try getAbsolute(tk.buf[0..tk.pos - 2]);
+        p.mem.mem[pc] = @intCast(address & 0x00FF);
+        pc = pc + 1;
+        p.mem.mem[pc] = @intCast(address >> 8);
+        pc = pc + 1;
+    }
+    return pc;
+}
+
+fn insertIndirectX(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_indirect_x) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        const address = try getZeropage(tk.buf[1..tk.pos - 3]);
+        p.mem.mem[pc] = @intCast(address & 0x00FF);
+        pc = pc + 1;
+    }
+    return pc;
+}
+
+fn insertIndirectY(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_indirect_y) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        const address = try getZeropage(tk.buf[1..tk.pos - 3]);
+        p.mem.mem[pc] = @intCast(address & 0x00FF);
+        pc = pc + 1;
+    }
+    return pc;
+}
+
 fn nextToken(creader: *cr.CharReader) !Token {
     var pos: usize = 0;
     var buf: [128]u8 = undefined;
@@ -169,18 +280,28 @@ fn nextToken(creader: *cr.CharReader) !Token {
             _ = creader.readByte();
             continue;
         }
+        if (ch == '\n') {
+            _ = creader.readByte();
+            return .{ .tkt = tkt_endofline, .buf = undefined, .pos = 0 };
+        }
+        if (ch == ';') {
+            while (true) {
+                ch = creader.readByte();
+                if (ch == '\n') {
+                    break;
+                }
+                if (ch == 0) {
+                    break;
+                }
+            }
+            continue;
+        }
         break;
-    }
-
-    ch = creader.peekByte();
-    if (ch == '\n') {
-        ch = creader.readByte();
-        return .{ .tkt = tkt_endofline, .buf = undefined, .pos = 0 };
     }
 
     while (true) {
         ch = creader.peekByte();
-        if (ch == ' ' or ch == '\n' or ch == 0) {
+        if (ch == ' ' or ch == '\n' or ch == 0 or ch == ';') {
             break;
         }
         ch = creader.readByte();
@@ -208,8 +329,12 @@ fn nextToken(creader: *cr.CharReader) !Token {
         tk.tkt = tkt_absolute;
     } else if (tk.buf[0] == '$' and pos == 7 and tk.buf[5] == ',' and tk.buf[6] == 'X') {
         tk.tkt = tkt_absolute_x;
-    } else if (tk.buf[0] == '$' and pos == 7 and tk.buf[5] == ',' and tk.buf[6] == 'X') {
+    } else if (tk.buf[0] == '$' and pos == 7 and tk.buf[5] == ',' and tk.buf[6] == 'Y') {
         tk.tkt = tkt_absolute_y;
+    } else if (tk.buf[0] == '(' and tk.buf[1] == '$' and pos == 7 and tk.buf[4] == ',' and tk.buf[5] == 'X' and tk.buf[6] == ')') {
+        tk.tkt = tkt_indirect_x;
+    } else if (tk.buf[0] == '(' and tk.buf[1] == '$' and pos == 7 and tk.buf[4] == ')' and tk.buf[5] == ',' and tk.buf[6] == 'Y') {
+        tk.tkt = tkt_indirect_y;
     }
 
     tk.pos = pos;
@@ -263,9 +388,9 @@ pub fn getDigit(ch: u8) !u8 {
     if ('0' <= ch and '9' >= ch) {
         return ch - '0';
     } else if ('A' <= ch and 'F' >= ch) {
-        return ch - 'A';
+        return ch - 'A' + 10;
     } else if ('a' <= ch and 'f' >= ch) {
-        return ch - 'a';
+        return ch - 'a' + 10;
     } else {
         std.log.info(">>> illegal hex digit : {c}", .{ch});
         return AsmErrors.illegalHexDigit;

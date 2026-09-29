@@ -1,0 +1,75 @@
+; testing ADC address modes
+
+; immediate
+LDA #$10
+ADC #$20
+STA $1000
+
+; zeropage
+LDA #$21
+STA $10
+LDA #$10
+ADC $10
+STA $1001
+
+; zeropage indexed by x
+LDA #$22
+STA $11
+LDA #$10
+LDX #$01
+ADC $10,X
+STA $1002
+
+; absolute
+LDA #$23
+STA $2000
+LDA #$10
+ADC $2000
+STA $1003
+
+; absolute indexed by X
+LDA #$24
+STA $2001
+LDA #$10
+LDX #$01
+ADC $2000,X
+STA $1004
+
+; absolute indexed by Y
+LDA #$25
+STA $2001
+LDA #$10
+LDY #$01
+ADC $2000,Y
+STA $1005
+
+; indirect indexed by X
+LDA #$26
+STA $2030
+LDA #$30
+STA $21
+LDA #$20
+STA $22
+LDA #$10
+LDX #$01
+ADC ($20,X)
+STA $1006
+
+; indirect indexed by Y
+LDA #$27
+STA $2041
+LDA #$40
+STA $23
+LDA #$20
+STA $24
+LDA #$10
+LDY #$01
+ADC ($23),Y
+STA $1007
+
+; carry
+LDA #$80
+ADC #$80
+LDA #$10
+ADC #$20
+STA $1008

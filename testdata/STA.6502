@@ -1,0 +1,42 @@
+; testing STA address modes
+
+; zeropage
+LDA #$01
+STA $10
+
+; zeropage indexed by X
+LDA #$02
+LDX #$01
+STA $10,X
+
+; absolute
+LDA #$03
+STA $1000
+
+; absolute indexed by x
+LDA #$04
+LDX #$01
+STA $1000,X
+
+; absolute indexed by y
+LDA #$05
+LDY #$02
+STA $1000,Y
+
+; indirect indexed by y
+LDX #$01
+LDA #$03
+STA $25
+LDA #$10
+STA $26
+LDA #$06
+STA ($24,X)
+
+; indirect indexed by y
+LDA #$00
+STA $20
+LDA #$10
+STA $21
+LDY #$04
+LDA #$07
+STA ($20),Y
