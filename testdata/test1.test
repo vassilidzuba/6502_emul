@@ -68,7 +68,19 @@ assert @1006 %00001001
 assert @1007 %00010001
 assert @1008 %00100001
 
-enable
 run testdata/JMP.6502
 assert @0020 $10
 assert @0021 $20
+
+enable
+run testdata/ASL.6502
+assert @1000 %01010100
+assert @1001 $31
+assert @1002 $00
+assert @1003 $31
+assert @1004 %10000000
+assert @1005 $30
+assert @0030 $02
+assert @0031 $02
+assert @1010 $04
+assert @1011 $04

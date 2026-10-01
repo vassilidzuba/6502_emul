@@ -23,6 +23,12 @@ pub const AND_AY = 0x39;
 pub const AND_IX = 0x21;
 pub const AND_IY = 0x31;
 
+pub const ASL_I = 0x0A;
+pub const ASL_Z = 0x06;
+pub const ASL_ZX = 0x16;
+pub const ASL_A = 0x0E;
+pub const ASL_AX = 0x1E;
+
 pub const CLC_I = 0x18;
 
 pub const DEC_Z = 0xC6;
@@ -110,6 +116,12 @@ pub fn initOpTable() void {
     addOpTable(AND_AY, exec_AND_AY);
     addOpTable(AND_IX, exec_AND_IX);
     addOpTable(AND_IY, exec_AND_IY);
+
+    addOpTable(ASL_I, exec_ASL_I);
+    addOpTable(ASL_Z, exec_ASL_Z);
+    addOpTable(ASL_ZX, exec_ASL_ZX);
+    addOpTable(ASL_A, exec_ASL_A);
+    addOpTable(ASL_AX, exec_ASL_AX);
 
     addOpTable(CLC_I, exec_CLC_I);
 
@@ -418,6 +430,66 @@ fn exec_AND_IY(p: *proc.Processor, cy: *i32) void {
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     exec_AND(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_ASL(p: *proc.Processor, adr: usize) void {
+    var val: u8 = undefined;
+    if (adr == INVALID_ADDRESS) {
+        val = p.ac;
+    } else {
+        val = p.mem.mem[adr];
+    }
+
+    val = val & p.ac;
+    const newval: u8 = val << 1;
+    p.setZeroFlag(newval == 0);
+    p.setNegativeFlag(newval & 0b10000000 != 0);
+    p.setCarryFlag(val & 0b10000000 != 0);
+
+    if (adr == INVALID_ADDRESS) {
+        p.ac = newval;
+    } else {
+        p.mem.mem[adr] = newval;
+    }
+}
+
+fn exec_ASL_I(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running ASL_I, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    exec_ASL(p, INVALID_ADDRESS);
+    cy.* = cy.* - 2;
+}
+
+fn exec_ASL_Z(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running ASL_Z, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getZeropageAddress(p);
+    exec_ASL(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_ASL_ZX(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running ASL_ZX, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getZeropageXAddress(p);
+    exec_ASL(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_ASL_A(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running ASL_A, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteAddress(p);
+    exec_ASL(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_ASL_AX(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running ASL_AX, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteXAddress(p);
+    exec_ASL(p, adr);
     cy.* = cy.* - 2;
 }
 

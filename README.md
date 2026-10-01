@@ -12,6 +12,8 @@ This project is distrubuted under the MIT license.
 Currently, the following opcodes are implemented and their tests are available:
 
     ADC
+    AND
+    ASL
     CLC
     DEC
     DEX
@@ -19,5 +21,6 @@ Currently, the following opcodes are implemented and their tests are available:
     INC
     INX
     INY
+    JMP
     LDA
     STA

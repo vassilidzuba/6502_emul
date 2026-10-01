@@ -21,6 +21,7 @@ const tkt_absolute_y: u8 = 12;
 const tkt_indirect_x: u8 = 13;
 const tkt_indirect_y: u8 = 14;
 const tkt_label: u8 = 15;
+const tkt_accumulator: u8 = 16;
 
 const AsmErrors = error{
     illegalParameter,
@@ -165,6 +166,14 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertAbsoluteY(&tk2, p, pos, ops.AND_AY);
             pos = try insertIndirectX(&tk2, p, pos, ops.AND_IX);
             pos = try insertIndirectY(&tk2, p, pos, ops.AND_IY);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "ASL")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertAccumulator(&tk2, p, pos, ops.ASL_I);
+            pos = try insertZeropage(&tk2, p, pos, ops.ASL_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.ASL_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.ASL_A);
+            pos = try insertAbsoluteX(&tk2, p, pos, ops.ASL_AX);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "DEX")) {
             pos = try insertImplied(p, pos, ops.DEX_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "INX")) {
@@ -180,6 +189,7 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
 
             pos = try insertAbsoluteAddress(&tk2, p, pos, ops.JMP_A, &labelList);
         } else {
+            std.log.err("Unknown opcode: {s}", .{tk.buf[0..tk.pos]});
             return AsmErrors.unknownOpcode;
         }
     }
@@ -302,6 +312,15 @@ fn insertIndirectY(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8)
     return pc;
 }
 
+fn insertAccumulator(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_accumulator) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+    }
+    return pc;
+}
+
 fn insertAbsoluteAddress(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8, labelList: *std.ArrayList(Label)) !usize {
     var pc = pc1;
     if (tk.tkt == tkt_absolute) {
@@ -395,6 +414,8 @@ fn nextToken(creader: *cr.CharReader) !Token {
         tk.tkt = tkt_indirect_y;
     } else if (pos > 1 and tk.buf[pos - 1] == ':') {
         tk.tkt = tkt_label;
+    } else if (pos == 1 and tk.buf[0] == 'A') {
+        tk.tkt = tkt_accumulator;
     }
 
     tk.pos = pos;
