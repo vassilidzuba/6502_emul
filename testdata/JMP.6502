@@ -1,0 +1,19 @@
+; test JMP
+
+; absolute
+LDA #$10
+JMP end
+LDA #$20
+end:
+STA $20
+
+; absolute
+LDA #$10
+JMP l1
+l2:
+LDA #$20
+JMP end2
+l1:
+JMP l2
+end2:
+STA $21

@@ -20,6 +20,7 @@ const tkt_absolute_x: u8 = 11;
 const tkt_absolute_y: u8 = 12;
 const tkt_indirect_x: u8 = 13;
 const tkt_indirect_y: u8 = 14;
+const tkt_label: u8 = 15;
 
 const AsmErrors = error{
     illegalParameter,
@@ -27,10 +28,34 @@ const AsmErrors = error{
     unknownOpcode,
 };
 
+const LabelError = error{
+    notFound,
+};
+
+const Label = struct {
+    allocator: std.mem.Allocator,
+    label: [32]u8,
+    len: usize,
+    addr: u16,
+    references: std.ArrayList(u16) = .empty,
+
+    pub fn slice(self: *const Label) []const u8 {
+        return self.label[0..self.len];
+    }
+
+    pub fn deinit(self: *const Label) void {
+        self.references.deinit(self.allocator);
+    }
+};
+
 const Token = struct {
     tkt: u8,
     buf: [16]u8,
     pos: usize,
+
+    fn slice(self: *const Token) []const u8 {
+        return self.buf[0..self.pos];
+    }
 
     fn show(self: *const Token) void {
         if (self.tkt == tkt_name) {
@@ -51,6 +76,8 @@ const Token = struct {
 
 fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
     var pos: usize = 0xCD00;
+    var labelList: std.ArrayList(Label) = .empty;
+    defer labelList.deinit(p.allocator);
 
     while (true) {
         const tk: Token = try nextToken(creader);
@@ -60,10 +87,14 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             continue;
         }
         if (tk.tkt == tkt_endoffile) {
+            displayLabels(&labelList);
+            try updateReferences(p, &labelList);
             break;
         }
 
-        if (std.mem.eql(u8, tk.buf[0..tk.pos], "LDA")) {
+        if (tk.tkt == tkt_label) {
+            try defineLabel(p.allocator, &labelList, tk.buf[0..tk.pos - 1], @intCast(pos));
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "LDA")) {
             const tk2: Token = try nextToken(creader);
 
             pos = try insertImmediate(&tk2, p, pos, ops.LDA_I);
@@ -74,7 +105,6 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertAbsoluteY(&tk2, p, pos, ops.LDA_AY);
             pos = try insertIndirectX(&tk2, p, pos, ops.LDA_IX);
             pos = try insertIndirectY(&tk2, p, pos, ops.LDA_IY);
-
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "LDX")) {
             const tk2: Token = try nextToken(creader);
 
@@ -82,7 +112,6 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertZeropage(&tk2, p, pos, ops.LDX_Z);
             pos = try insertZeropageY(&tk2, p, pos, ops.LDX_ZY);
             pos = try insertAbsolute(&tk2, p, pos, ops.LDX_A);
-
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "LDY")) {
             const tk2: Token = try nextToken(creader);
 
@@ -90,7 +119,6 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertZeropage(&tk2, p, pos, ops.LDY_Z);
             pos = try insertZeropageX(&tk2, p, pos, ops.LDY_ZX);
             pos = try insertAbsolute(&tk2, p, pos, ops.LDY_A);
-
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "INC")) {
             const tk2: Token = try nextToken(creader);
 
@@ -98,7 +126,6 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertZeropageX(&tk2, p, pos, ops.INC_ZX);
             pos = try insertAbsolute(&tk2, p, pos, ops.INC_A);
             pos = try insertAbsoluteX(&tk2, p, pos, ops.INC_AX);
-
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "DEC")) {
             const tk2: Token = try nextToken(creader);
 
@@ -106,7 +133,6 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertZeropageX(&tk2, p, pos, ops.DEC_ZX);
             pos = try insertAbsolute(&tk2, p, pos, ops.DEC_A);
             pos = try insertAbsoluteX(&tk2, p, pos, ops.DEC_AX);
-
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "STA")) {
             const tk2: Token = try nextToken(creader);
 
@@ -128,21 +154,31 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertAbsoluteY(&tk2, p, pos, ops.ADC_AY);
             pos = try insertIndirectX(&tk2, p, pos, ops.ADC_IX);
             pos = try insertIndirectY(&tk2, p, pos, ops.ADC_IY);
-        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "DEX")) {
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "AND")) {
+            const tk2: Token = try nextToken(creader);
 
+            pos = try insertImmediate(&tk2, p, pos, ops.AND_I);
+            pos = try insertZeropage(&tk2, p, pos, ops.AND_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.AND_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.AND_A);
+            pos = try insertAbsoluteX(&tk2, p, pos, ops.AND_AX);
+            pos = try insertAbsoluteY(&tk2, p, pos, ops.AND_AY);
+            pos = try insertIndirectX(&tk2, p, pos, ops.AND_IX);
+            pos = try insertIndirectY(&tk2, p, pos, ops.AND_IY);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "DEX")) {
             pos = try insertImplied(p, pos, ops.DEX_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "INX")) {
-
             pos = try insertImplied(p, pos, ops.INX_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "DEY")) {
-
             pos = try insertImplied(p, pos, ops.DEY_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "INY")) {
-
             pos = try insertImplied(p, pos, ops.INY_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLC")) {
-
             pos = try insertImplied(p, pos, ops.CLC_I);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "JMP")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertAbsoluteAddress(&tk2, p, pos, ops.JMP_A, &labelList);
         } else {
             return AsmErrors.unknownOpcode;
         }
@@ -183,7 +219,7 @@ fn insertZeropageX(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8)
     if (tk.tkt == tkt_zeropage_x) {
         p.mem.mem[pc] = opcode;
         pc = pc + 1;
-        p.mem.mem[pc] = try getZeropage(tk.buf[0..tk.pos - 2]);
+        p.mem.mem[pc] = try getZeropage(tk.buf[0 .. tk.pos - 2]);
         pc = pc + 1;
     }
     return pc;
@@ -219,7 +255,7 @@ fn insertAbsoluteX(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8)
     if (tk.tkt == tkt_absolute_x) {
         p.mem.mem[pc] = opcode;
         pc = pc + 1;
-        const address = try getAbsolute(tk.buf[0..tk.pos - 2]);
+        const address = try getAbsolute(tk.buf[0 .. tk.pos - 2]);
         p.mem.mem[pc] = @intCast(address & 0x00FF);
         pc = pc + 1;
         p.mem.mem[pc] = @intCast(address >> 8);
@@ -233,7 +269,7 @@ fn insertAbsoluteY(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8)
     if (tk.tkt == tkt_absolute_y) {
         p.mem.mem[pc] = opcode;
         pc = pc + 1;
-        const address = try getAbsolute(tk.buf[0..tk.pos - 2]);
+        const address = try getAbsolute(tk.buf[0 .. tk.pos - 2]);
         p.mem.mem[pc] = @intCast(address & 0x00FF);
         pc = pc + 1;
         p.mem.mem[pc] = @intCast(address >> 8);
@@ -247,7 +283,7 @@ fn insertIndirectX(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8)
     if (tk.tkt == tkt_indirect_x) {
         p.mem.mem[pc] = opcode;
         pc = pc + 1;
-        const address = try getZeropage(tk.buf[1..tk.pos - 3]);
+        const address = try getZeropage(tk.buf[1 .. tk.pos - 3]);
         p.mem.mem[pc] = @intCast(address & 0x00FF);
         pc = pc + 1;
     }
@@ -259,8 +295,30 @@ fn insertIndirectY(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8)
     if (tk.tkt == tkt_indirect_y) {
         p.mem.mem[pc] = opcode;
         pc = pc + 1;
-        const address = try getZeropage(tk.buf[1..tk.pos - 3]);
+        const address = try getZeropage(tk.buf[1 .. tk.pos - 3]);
         p.mem.mem[pc] = @intCast(address & 0x00FF);
+        pc = pc + 1;
+    }
+    return pc;
+}
+
+fn insertAbsoluteAddress(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8, labelList: *std.ArrayList(Label)) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_absolute) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        const address = try getAbsolute(tk.buf[0 .. tk.pos - 2]);
+        p.mem.mem[pc] = @intCast(address & 0x00FF);
+        pc = pc + 1;
+        p.mem.mem[pc] = @intCast(address >> 8);
+        pc = pc + 1;
+    } else {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        try defineLabelReference(p.allocator, labelList, tk.slice(), @intCast(pc));
+        p.mem.mem[pc] = 0;
+        pc = pc + 1;
+        p.mem.mem[pc] = 0;
         pc = pc + 1;
     }
     return pc;
@@ -315,7 +373,7 @@ fn nextToken(creader: *cr.CharReader) !Token {
         tk.buf[i] = buf[i];
     }
 
-    std.log.info(">>>>>>> {d} - {s}", .{pos, buf[0..pos]});
+    std.log.info(">>>>>>> {d} - {s}", .{ pos, buf[0..pos] });
 
     if (tk.buf[0] == '#') {
         tk.tkt = tkt_immediate;
@@ -335,6 +393,8 @@ fn nextToken(creader: *cr.CharReader) !Token {
         tk.tkt = tkt_indirect_x;
     } else if (tk.buf[0] == '(' and tk.buf[1] == '$' and pos == 7 and tk.buf[4] == ')' and tk.buf[5] == ',' and tk.buf[6] == 'Y') {
         tk.tkt = tkt_indirect_y;
+    } else if (pos > 1 and tk.buf[pos - 1] == ':') {
+        tk.tkt = tkt_label;
     }
 
     tk.pos = pos;
@@ -349,10 +409,12 @@ pub fn asm6502File(io: std.Io, allocator: std.mem.Allocator, p: *proc.Processor,
 }
 
 pub fn getImmediate(s: []const u8) !u8 {
-    if (s.len != 4) {
-        return AsmErrors.illegalParameter;
-    } else {
+    if (s.len == 4) {
         return getU8(s[2..4]);
+    } else if (s.len == 10) {
+        return getBinary(s[2..10]);
+    } else {
+        return AsmErrors.illegalParameter;
     }
 }
 
@@ -376,6 +438,18 @@ pub fn getU8(s: []const u8) !u8 {
     return try getDigit(s[0]) * 16 + try getDigit(s[1]);
 }
 
+pub fn getBinary(s: []const u8) !u8 {
+    var val: u8 = 0;
+    for (s) |ch| {
+        if (ch == '1') {
+            val = val + val + 1;
+        } else if (ch == '0') {
+            val = val + val;
+        }
+    }
+    return val;
+}
+
 pub fn getU16(s: []const u8) !u16 {
     var x: u16 = try getDigit(s[0]);
     x = x * 16 + try getDigit(s[1]);
@@ -394,5 +468,73 @@ pub fn getDigit(ch: u8) !u8 {
     } else {
         std.log.info(">>> illegal hex digit : {c}", .{ch});
         return AsmErrors.illegalHexDigit;
+    }
+}
+
+fn defineLabel(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label: []const u8, pc: u16) !void {
+    std.log.info("defineLabel {s} - {X}", .{ label, pc });
+
+    if (getLabel(list, label)) |ls| {
+        ls.addr = pc;
+    } else |_| {
+        var ls: Label = undefined;
+        ls.allocator = allocator;
+        ls.addr = pc;
+        ls.len = label.len;
+        for (0..ls.len) |ii| {
+            ls.label[ii] = label[ii];
+        }
+        ls.references = .empty;
+        try list.append(allocator, ls);
+    }
+}
+
+fn defineLabelReference(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label: []const u8, addr: u16) !void {
+    std.log.info("defineLabelReference {s} - {X}", .{ label, addr });
+
+    if (getLabel(list, label)) |ls| {
+        try ls.references.append(allocator, addr);
+    } else |_| {
+        var ls: Label = undefined;
+        ls.allocator = allocator;
+        ls.len = label.len;
+        for (0..ls.len) |ii| {
+            ls.label[ii] = label[ii];
+        }
+
+        ls.references = .empty;
+        try ls.references.append(allocator, addr);
+
+        try list.append(allocator, ls);
+    }
+}
+
+fn getLabel(labelList: *std.ArrayList(Label), label: []const u8) !*Label {
+    std.log.info("getLabel : {s}", .{label});
+    for (0..labelList.items.len) |ii| {
+        if (std.mem.eql(u8, labelList.items[ii].slice(), label)) {
+            return &labelList.items[ii];
+        }
+    }
+    std.log.info("not bloody found", .{});
+    return LabelError.notFound;
+}
+
+fn displayLabels(list: *std.ArrayList(Label)) void {
+    std.log.info("labels:", .{});
+    for (list.items) |ls| {
+        std.log.info("  label {s} at {X}", .{ ls.slice(), ls.addr });
+        for (ls.references.items) |x| {
+            std.log.info("      {X}", .{x});
+        }
+    }
+}
+
+fn updateReferences(p: *proc.Processor, list: *std.ArrayList(Label)) !void {
+    for (list.items) |l| {
+        for (l.references.items) |addr| {
+            p.mem.mem[addr] = @intCast(l.addr & 0x00FF);
+            p.mem.mem[addr + 1] = @intCast(l.addr >> 8);
+        }
     }
 }

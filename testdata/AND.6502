@@ -1,0 +1,73 @@
+; testing AND
+
+; immediate
+LDA #%00000001
+AND #%00000000
+STA $1000
+
+; immediate (2)
+LDA #%00000001
+AND #%00000011
+STA $1001
+
+; zeropage
+LDA #%00000001
+STA $10
+LDA #%00000011
+AND $10
+STA $1002
+
+; zeropage indexed by X
+LDA #%00000011
+STA $11
+LDA #%00000111
+LDX #$01
+AND $10,X
+STA $1003
+
+; absolute
+LDA #%00000001
+STA $2000
+LDA #%00000011
+AND $2000
+STA $1004
+
+; absolute indexed by X
+LDA #%00000111
+STA $2001
+LDA #%00000101
+LDX #$01
+AND $2000,X
+STA $1005
+
+; absolute indexed by Y
+LDA #%00001111
+STA $2002
+LDA #%00001001
+LDY #$02
+AND $2000,Y
+STA $1006
+
+; indirect indexed by X
+LDA #%00011111
+STA $2040
+LDA #$40
+STA $21
+LDA #$20
+STA $22
+LDX #$01
+LDA #%00010001
+AND ($20,X)
+STA $1007
+
+; indirect indexed by Y
+LDA #%00111111
+STA $2041
+LDA #$40
+STA $20
+LDA #$20
+STA $21
+LDY #$01
+LDA #%00100001
+AND ($20),Y
+STA $1008

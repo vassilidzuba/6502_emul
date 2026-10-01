@@ -12,6 +12,7 @@ const TesterErrors = error{
     assertionFails,
     illegalParameter,
     illegalHexDigit,
+    illegalBinaryDigit,
 };
 
 const tkt_name: u8 = 1;
@@ -170,10 +171,12 @@ fn nextToken(creader: *cr.CharReader) !Token {
 }
 
 pub fn getU8(s: []const u8) !u8 {
-    if (s.len != 3) {
-        return TesterErrors.illegalParameter;
-    } else {
+    if (s[0] == '$' and s.len == 3) {
         return try getDigit(s[1]) * 16 + try getDigit(s[2]);
+    } else if (s[0] == '%' and s.len == 9) {
+        return try getBinary(s[1..s.len]);
+    } else {
+        return TesterErrors.illegalParameter;
     }
 }
 
@@ -196,4 +199,19 @@ pub fn getDigit(ch: u8) !u8 {
         std.log.info(">>> illegal hex digit : {c}", .{ch});
         return TesterErrors.illegalHexDigit;
     }
+}
+
+
+pub fn getBinary(s: []const u8) !u8 {
+    var val : u8 = 0;
+    for (s) |ch| {
+        if (ch  == '0') {
+            val = val * 2;
+        } else if (ch == '1') {
+            val = val * 2 + 1;
+        } else {
+            return TesterErrors.illegalBinaryDigit;
+        }
+    }
+    return val;
 }

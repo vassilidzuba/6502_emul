@@ -43,6 +43,8 @@ pub const INX_I = 0xE8;
 
 pub const INY_I = 0xC8;
 
+pub const JMP_A = 0x4C;
+
 pub const LDA_I = 0xA9;
 pub const LDA_Z = 0xA5;
 pub const LDA_ZX = 0xB5;
@@ -128,6 +130,8 @@ pub fn initOpTable() void {
     addOpTable(INX_I, exec_INX_I);
 
     addOpTable(INY_I, exec_INY_I);
+
+    addOpTable(JMP_A, exec_JMP_A);
 
     addOpTable(LDA_I, exec_LDA_I);
     addOpTable(LDA_Z, exec_LDA_Z);
@@ -561,6 +565,14 @@ fn exec_INY_I(p: *proc.Processor, cy: *i32) void {
         val = val + 1;
     }
     p.y = @intCast(val);
+    cy.* = cy.* - 2;
+}
+
+fn exec_JMP_A(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running JMP_A, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteAddress(p);
+    p.pc = @intCast(adr);
     cy.* = cy.* - 2;
 }
 
