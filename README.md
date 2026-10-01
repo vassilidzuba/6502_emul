@@ -23,4 +23,5 @@ Currently, the following opcodes are implemented and their tests are available:
     INY
     JMP
     LDA
+    LSR
     STA

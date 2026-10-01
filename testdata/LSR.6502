@@ -1,0 +1,50 @@
+; test LSR
+
+; implied (with carry flag)
+LDA #%10101011
+LSR A
+STA $1000
+LDA #$10
+ADC #$20
+STA $1001
+
+; implied (with carry flag and zero flag)
+CLC
+LDA #%00000001
+LSR A
+STA $1002
+LDA #$10
+ADC #$20
+STA $1003
+
+
+; implied (without carry flag and wirh negative flag)
+CLC
+LDA #%00000010
+LSR A
+STA $1004
+LDA #$10
+ADC #$20
+STA $1005
+
+; zeropage
+LDA #%00000001
+STA $30
+LSR $30
+
+; zeropage indexed by X
+LDA #%00000001
+STA $31
+LDX #$01
+LSR $30,X
+
+; absolute
+LDA #%00000010
+STA $1010
+LSR $1010
+
+; zeropage indexed by X
+LDA #%00000010
+STA $1011
+LDX #$01
+LSR $1010,X

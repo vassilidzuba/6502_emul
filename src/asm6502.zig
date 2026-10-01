@@ -60,15 +60,15 @@ const Token = struct {
 
     fn show(self: *const Token) void {
         if (self.tkt == tkt_name) {
-            std.log.info(">>> {d} - {s}", .{ self.tkt, self.buf[0..self.pos] });
+            // std.log.info(">>> {d} - {s}", .{ self.tkt, self.buf[0..self.pos] });
             return;
         }
         if (self.tkt == tkt_endofline) {
-            std.log.info(">>> NEWLINE", .{});
+            // std.log.info(">>> NEWLINE", .{});
             return;
         }
         if (self.tkt == tkt_endoffile) {
-            std.log.info(">>> END OF FILE", .{});
+            // std.log.info(">>> END OF FILE", .{});
             return;
         }
         std.log.info(">>> unknown : {d}", .{self.tkt});
@@ -174,6 +174,14 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertZeropageX(&tk2, p, pos, ops.ASL_ZX);
             pos = try insertAbsolute(&tk2, p, pos, ops.ASL_A);
             pos = try insertAbsoluteX(&tk2, p, pos, ops.ASL_AX);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "LSR")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertAccumulator(&tk2, p, pos, ops.LSR_I);
+            pos = try insertZeropage(&tk2, p, pos, ops.LSR_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.LSR_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.LSR_A);
+            pos = try insertAbsoluteX(&tk2, p, pos, ops.LSR_AX);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "DEX")) {
             pos = try insertImplied(p, pos, ops.DEX_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "INX")) {
@@ -392,7 +400,7 @@ fn nextToken(creader: *cr.CharReader) !Token {
         tk.buf[i] = buf[i];
     }
 
-    std.log.info(">>>>>>> {d} - {s}", .{ pos, buf[0..pos] });
+    // std.log.info(">>>>>>> {d} - {s}", .{ pos, buf[0..pos] });
 
     if (tk.buf[0] == '#') {
         tk.tkt = tkt_immediate;

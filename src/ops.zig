@@ -72,6 +72,12 @@ pub const LDY_ZX = 0xB4;
 pub const LDY_A = 0xAC;
 pub const LDY_AX = 0xBC;
 
+pub const LSR_I = 0x4A;
+pub const LSR_Z = 0x46;
+pub const LSR_ZX = 0x56;
+pub const LSR_A = 0x4E;
+pub const LSR_AX = 0x5E;
+
 pub const STA_Z = 0x85;
 pub const STA_ZX = 0x95;
 pub const STA_A = 0x8D;
@@ -165,6 +171,12 @@ pub fn initOpTable() void {
     addOpTable(LDY_ZX, exec_LDY_ZX);
     addOpTable(LDY_A, exec_LDY_A);
     addOpTable(LDY_AX, exec_LDY_AX);
+
+    addOpTable(LSR_I, exec_LSR_I);
+    addOpTable(LSR_Z, exec_LSR_Z);
+    addOpTable(LSR_ZX, exec_LSR_ZX);
+    addOpTable(LSR_A, exec_LSR_A);
+    addOpTable(LSR_AX, exec_LSR_AX);
 
     addOpTable(STA_Z, exec_STA_Z);
     addOpTable(STA_ZX, exec_STA_ZX);
@@ -441,7 +453,6 @@ fn exec_ASL(p: *proc.Processor, adr: usize) void {
         val = p.mem.mem[adr];
     }
 
-    val = val & p.ac;
     const newval: u8 = val << 1;
     p.setZeroFlag(newval == 0);
     p.setNegativeFlag(newval & 0b10000000 != 0);
@@ -866,6 +877,65 @@ fn exec_STA_ZX(p: *proc.Processor, cy: *i32) void {
     const adr = getZeropageXAddress(p);
     p.mem.mem[adr] = p.ac;
     cy.* = cy.* - 3;
+}
+
+
+fn exec_LSR(p: *proc.Processor, adr: usize) void {
+    var val: u8 = undefined;
+    if (adr == INVALID_ADDRESS) {
+        val = p.ac;
+    } else {
+        val = p.mem.mem[adr];
+    }
+
+    const newval: u8 = val >> 1;
+    p.setZeroFlag(newval == 0);
+    p.setCarryFlag(val & 0b00000001 != 0);
+
+    if (adr == INVALID_ADDRESS) {
+        p.ac = newval;
+    } else {
+        p.mem.mem[adr] = newval;
+    }
+}
+
+fn exec_LSR_I(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LSR_I, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    exec_LSR(p, INVALID_ADDRESS);
+    cy.* = cy.* - 2;
+}
+
+fn exec_LSR_Z(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LSR_Z, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getZeropageAddress(p);
+    exec_LSR(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_LSR_ZX(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LSR_ZX, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getZeropageXAddress(p);
+    exec_LSR(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_LSR_A(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LSR_A, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteAddress(p);
+    exec_LSR(p, adr);
+    cy.* = cy.* - 2;
+}
+
+fn exec_LSR_AX(p: *proc.Processor, cy: *i32) void {
+    std.log.info("running LSR_AX, (cycle {d})", .{cy.*});
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteXAddress(p);
+    exec_LSR(p, adr);
+    cy.* = cy.* - 2;
 }
 
 fn exec_STA_A(p: *proc.Processor, cy: *i32) void {

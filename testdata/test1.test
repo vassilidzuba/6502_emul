@@ -72,7 +72,6 @@ run testdata/JMP.6502
 assert @0020 $10
 assert @0021 $20
 
-enable
 run testdata/ASL.6502
 assert @1000 %01010100
 assert @1001 $31
@@ -84,3 +83,18 @@ assert @0030 $02
 assert @0031 $02
 assert @1010 $04
 assert @1011 $04
+
+enable
+run testdata/LSR.6502
+assert @1000 %01010101
+assert @1001 $31
+assert @1002 $00
+assert @1003 $31
+assert @1004 %00000001
+assert @1005 $30
+assert @0030 $00
+assert @0031 $00
+assert @1010 $01
+assert @1011 $01
+
+;run testdata/foo.6502

@@ -1,0 +1,8 @@
+; implied (without carry flag and wirh negative flag)
+CLC
+LDA #%00000010
+LSR A
+STA $1004
+LDA #$10
+ADC #$20
+STA $1005
