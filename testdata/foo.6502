@@ -1,8 +1,11 @@
-; implied (without carry flag and wirh negative flag)
+JMP l3
+next:
+LDA #$20
+STA $12
+JMP end
+l3:
 CLC
-LDA #%00000010
-LSR A
-STA $1004
-LDA #$10
-ADC #$20
-STA $1005
+BCC next
+end:
+LDA #$21
+STA $13

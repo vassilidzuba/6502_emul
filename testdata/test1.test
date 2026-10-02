@@ -84,7 +84,6 @@ assert @0031 $02
 assert @1010 $04
 assert @1011 $04
 
-enable
 run testdata/LSR.6502
 assert @1000 %01010101
 assert @1001 $31
@@ -97,4 +96,11 @@ assert @0031 $00
 assert @1010 $01
 assert @1011 $01
 
-;run testdata/foo.6502
+run testdata/SEC.6502
+assert @1000 $31
+
+enable
+run testdata/BCC.6502
+assert @0010 $00
+assert @0011 $10
+assert @0012 $20

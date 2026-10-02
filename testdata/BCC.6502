@@ -1,1 +1,31 @@
 ; test BCC
+
+
+; test succeeds
+CLC
+BCC l1
+LDA #$10
+STA $10
+l1:
+
+
+; test fails
+SEC
+BCC l2
+LDA #$10
+STA $11
+l2:
+NOP
+
+; test succeeds with negative displacement
+JMP l3
+next:
+LDA #$20
+STA $12
+JMP end
+l3:
+CLC
+BCC next
+end:
+LDA #$21
+STA $13

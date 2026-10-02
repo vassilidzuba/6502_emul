@@ -33,12 +33,17 @@ const LabelError = error{
     notFound,
 };
 
+const Reference = struct {
+    addr: u16,
+    relative: bool,
+};
+
 const Label = struct {
     allocator: std.mem.Allocator,
     label: [32]u8,
     len: usize,
     addr: u16,
-    references: std.ArrayList(u16) = .empty,
+    references: std.ArrayList(Reference) = .empty,
 
     pub fn slice(self: *const Label) []const u8 {
         return self.label[0..self.len];
@@ -192,10 +197,18 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertImplied(p, pos, ops.INY_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLC")) {
             pos = try insertImplied(p, pos, ops.CLC_I);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "SEC")) {
+            pos = try insertImplied(p, pos, ops.SEC_I);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "NOP")) {
+            pos = try insertImplied(p, pos, ops.NOP_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "JMP")) {
             const tk2: Token = try nextToken(creader);
 
             pos = try insertAbsoluteAddress(&tk2, p, pos, ops.JMP_A, &labelList);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BCC")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertRelativeAddress(&tk2, p, pos, ops.BCC_I, &labelList);
         } else {
             std.log.err("Unknown opcode: {s}", .{tk.buf[0..tk.pos]});
             return AsmErrors.unknownOpcode;
@@ -342,9 +355,27 @@ fn insertAbsoluteAddress(tk: *const Token, p: *proc.Processor, pc1: usize, opcod
     } else {
         p.mem.mem[pc] = opcode;
         pc = pc + 1;
-        try defineLabelReference(p.allocator, labelList, tk.slice(), @intCast(pc));
+        try defineLabelReference(p.allocator, labelList, tk.slice(), @intCast(pc), false);
         p.mem.mem[pc] = 0;
         pc = pc + 1;
+        p.mem.mem[pc] = 0;
+        pc = pc + 1;
+    }
+    return pc;
+}
+
+fn insertRelativeAddress(tk: *const Token, p: *proc.Processor, pc1: usize, opcode: u8, labelList: *std.ArrayList(Label)) !usize {
+    var pc = pc1;
+    if (tk.tkt == tkt_zeropage) {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        const address = try getZeropage(tk.buf[0 .. tk.pos - 2]);
+        p.mem.mem[pc] = @intCast(address & 0x00FF);
+        pc = pc + 1;
+    } else {
+        p.mem.mem[pc] = opcode;
+        pc = pc + 1;
+        try defineLabelReference(p.allocator, labelList, tk.slice(), @intCast(pc), true);
         p.mem.mem[pc] = 0;
         pc = pc + 1;
     }
@@ -518,11 +549,12 @@ fn defineLabel(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label:
     }
 }
 
-fn defineLabelReference(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label: []const u8, addr: u16) !void {
+fn defineLabelReference(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label: []const u8, addr: u16, relative: bool) !void {
     std.log.info("defineLabelReference {s} - {X}", .{ label, addr });
 
     if (getLabel(list, label)) |ls| {
-        try ls.references.append(allocator, addr);
+        const ref : Reference = .{.addr = addr, .relative = relative};
+        try ls.references.append(allocator, ref);
     } else |_| {
         var ls: Label = undefined;
         ls.allocator = allocator;
@@ -532,7 +564,8 @@ fn defineLabelReference(allocator: std.mem.Allocator, list: *std.ArrayList(Label
         }
 
         ls.references = .empty;
-        try ls.references.append(allocator, addr);
+        const ref : Reference = .{.addr = addr, .relative = relative};
+        try ls.references.append(allocator, ref);
 
         try list.append(allocator, ls);
     }
@@ -554,16 +587,37 @@ fn displayLabels(list: *std.ArrayList(Label)) void {
     for (list.items) |ls| {
         std.log.info("  label {s} at {X}", .{ ls.slice(), ls.addr });
         for (ls.references.items) |x| {
-            std.log.info("      {X}", .{x});
+            var rel = "false";
+            if (x.relative) {
+                rel = "true ";
+            }
+            std.log.info("      {X}  relative={s}", .{x.addr, rel});
         }
     }
 }
 
 fn updateReferences(p: *proc.Processor, list: *std.ArrayList(Label)) !void {
     for (list.items) |l| {
-        for (l.references.items) |addr| {
-            p.mem.mem[addr] = @intCast(l.addr & 0x00FF);
-            p.mem.mem[addr + 1] = @intCast(l.addr >> 8);
+        for (l.references.items) |ref| {
+            if (ref.relative) {
+                std.log.info("updateReferences : relative not implemented yet", .{});
+                std.log.info("ref.addr {X}", .{ref.addr});
+                std.log.info("l.addr {X}", .{l.addr});
+                var rel: i8 = undefined;
+                if (l.addr > ref.addr) {
+                    rel = @intCast(l.addr - ref.addr);
+                    std.log.info("rel {X}", .{l.addr - ref.addr});
+                } else {
+                    std.log.info("zozo", .{});
+                    rel = @intCast(ref.addr - l.addr);
+                    std.log.info("rel {d}", .{rel});
+                    rel = - rel;
+                }
+                p.mem.mem[ref.addr] = @bitCast(rel);
+            } else {
+                p.mem.mem[ref.addr] = @intCast(l.addr & 0x00FF);
+                p.mem.mem[ref.addr + 1] = @intCast(l.addr >> 8);
+            }
         }
     }
 }

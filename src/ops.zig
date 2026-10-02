@@ -29,6 +29,8 @@ pub const ASL_ZX = 0x16;
 pub const ASL_A = 0x0E;
 pub const ASL_AX = 0x1E;
 
+pub const BCC_I = 0x90;
+
 pub const CLC_I = 0x18;
 
 pub const DEC_Z = 0xC6;
@@ -78,10 +80,14 @@ pub const LSR_ZX = 0x56;
 pub const LSR_A = 0x4E;
 pub const LSR_AX = 0x5E;
 
+pub const NOP_I = 0xEA;
+
+pub const SEC_I = 0x38;
+
 pub const STA_Z = 0x85;
 pub const STA_ZX = 0x95;
 pub const STA_A = 0x8D;
-pub const STA_AX = 0x90;
+pub const STA_AX = 0x9D;
 pub const STA_AY = 0x99;
 pub const STA_IX = 0x81;
 pub const STA_IY = 0x91;
@@ -128,6 +134,8 @@ pub fn initOpTable() void {
     addOpTable(ASL_ZX, exec_ASL_ZX);
     addOpTable(ASL_A, exec_ASL_A);
     addOpTable(ASL_AX, exec_ASL_AX);
+
+    addOpTable(BCC_I, exec_BCC_I);
 
     addOpTable(CLC_I, exec_CLC_I);
 
@@ -177,6 +185,10 @@ pub fn initOpTable() void {
     addOpTable(LSR_ZX, exec_LSR_ZX);
     addOpTable(LSR_A, exec_LSR_A);
     addOpTable(LSR_AX, exec_LSR_AX);
+
+    addOpTable(NOP_I, exec_NOP_I);
+
+    addOpTable(SEC_I, exec_SEC_I);
 
     addOpTable(STA_Z, exec_STA_Z);
     addOpTable(STA_ZX, exec_STA_ZX);
@@ -252,10 +264,8 @@ fn getAbsoluteYAddress(p: *proc.Processor) usize {
 
 fn getIndirectXAddress(p: *proc.Processor) usize {
     var zadr: u16 = p.mem.mem[p.pc];
-    std.log.info("zadr = {X}", .{zadr});
     p.pc = p.pc + 1;
     zadr = (zadr + p.x) & 0x00FF;
-    std.log.info("zadr = {X}", .{zadr});
     const adr1: u16 = p.mem.mem[zadr];
     const adr2: u16 = p.mem.mem[zadr + 1];
     const adr = adr2 * 256 + adr1;
@@ -272,7 +282,7 @@ fn getIndirectYAddress(p: *proc.Processor) usize {
 }
 
 fn exec_ILLEG(p: *proc.Processor, cy: *i32) void {
-    std.log.info("illegal opcode {X:0>2} (cycle {d})", .{ p.mem.mem[p.pc], cy.* });
+    std.log.info("{X} illegal opcode {X:0>2} (cycle {d})", .{ p.pc, p.mem.mem[p.pc], cy.* });
     cy.* = -1024;
 }
 
@@ -300,14 +310,14 @@ fn exec_ADC(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_ADC_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ADC_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ADC_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     exec_ADC(p, INVALID_ADDRESS);
     cy.* = cy.* - 2;
 }
 
 fn exec_ADC_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ADC_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ADC_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_ADC(p, adr);
@@ -315,7 +325,7 @@ fn exec_ADC_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ADC_ZX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ADC_ZX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_ADC(p, adr);
@@ -323,7 +333,7 @@ fn exec_ADC_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ADC_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ADC_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_ADC(p, adr);
@@ -331,7 +341,7 @@ fn exec_ADC_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ADC_AX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ADC_AX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
 
@@ -341,7 +351,7 @@ fn exec_ADC_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_AY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ADC_AY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ADC_AY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     exec_ADC(p, adr);
@@ -349,7 +359,7 @@ fn exec_ADC_AY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_IX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ADC_IX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ADC_IX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
     exec_ADC(p, adr);
@@ -357,7 +367,7 @@ fn exec_ADC_IX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_IY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ADC_IY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ADC_IY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     exec_ADC(p, adr);
@@ -381,14 +391,14 @@ fn exec_AND(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_AND_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running AND_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running AND_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     exec_AND(p, INVALID_ADDRESS);
     cy.* = cy.* - 2;
 }
 
 fn exec_AND_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running AND_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running AND_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_AND(p, adr);
@@ -396,7 +406,7 @@ fn exec_AND_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running AND_ZX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running AND_ZX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_AND(p, adr);
@@ -404,7 +414,7 @@ fn exec_AND_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running AND_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running AND_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_AND(p, adr);
@@ -412,7 +422,7 @@ fn exec_AND_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running AND_AX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running AND_AX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
 
@@ -422,7 +432,7 @@ fn exec_AND_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_AY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running AND_AY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running AND_AY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     exec_AND(p, adr);
@@ -430,7 +440,7 @@ fn exec_AND_AY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_IX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running AND_IX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running AND_IX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
     exec_AND(p, adr);
@@ -438,7 +448,7 @@ fn exec_AND_IX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_IY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running AND_IY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running AND_IY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     exec_AND(p, adr);
@@ -466,14 +476,14 @@ fn exec_ASL(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_ASL_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ASL_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ASL_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     exec_ASL(p, INVALID_ADDRESS);
     cy.* = cy.* - 2;
 }
 
 fn exec_ASL_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ASL_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ASL_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_ASL(p, adr);
@@ -481,7 +491,7 @@ fn exec_ASL_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ASL_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ASL_ZX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ASL_ZX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_ASL(p, adr);
@@ -489,7 +499,7 @@ fn exec_ASL_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ASL_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ASL_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ASL_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_ASL(p, adr);
@@ -497,15 +507,38 @@ fn exec_ASL_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ASL_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running ASL_AX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running ASL_AX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_ASL(p, adr);
     cy.* = cy.* - 2;
 }
 
+fn jumpRelative(p: *proc.Processor) void {
+    const adr: u16 = @intCast(getZeropageAddress(p));
+    if (adr >= 0x80) {
+        p.pc = p.pc - (0x100 - adr) - 1;
+    } else {
+        p.pc = p.pc + adr - 1;
+    }
+}
+
+fn exec_BCC_I(p: *proc.Processor, cy: *i32) void {
+    std.log.info("{X} running BCC_I, (cycle {d})", .{ p.pc, cy.* });
+    p.pc = p.pc + 1;
+    if (! p.getCarryFlag()) {
+        jumpRelative(p);
+    } else {
+        p.pc = p.pc + 1;
+    }
+
+    std.log.info("jump to {X}", .{ p.pc});
+
+    cy.* = cy.* - 2;
+}
+
 fn exec_CLC_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running CLC_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running CLC_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     p.setCarryFlag(false);
     cy.* = cy.* - 2;
@@ -524,7 +557,7 @@ fn exec_DEC(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_DEC_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running DEC_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running DEC_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_DEC(p, adr);
@@ -532,7 +565,7 @@ fn exec_DEC_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_DEC_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running DEC_ZX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running DEC_ZX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_DEC(p, adr);
@@ -540,7 +573,7 @@ fn exec_DEC_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_DEC_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running DEC_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running DEC_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_DEC(p, adr);
@@ -548,7 +581,7 @@ fn exec_DEC_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_DEC_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running DEC_AX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running DEC_AX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_DEC(p, adr);
@@ -556,7 +589,7 @@ fn exec_DEC_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_DEX_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running DEX_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running DEX_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     var val: u16 = p.x;
     if (val == 0) {
@@ -569,7 +602,7 @@ fn exec_DEX_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_DEY_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running DEY_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running DEY_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     var val: u16 = p.y;
     if (val == 0) {
@@ -594,7 +627,7 @@ fn exec_INC(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_INC_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running INC_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running INC_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_INC(p, adr);
@@ -602,7 +635,7 @@ fn exec_INC_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_INC_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running INC_ZX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running INC_ZX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_INC(p, adr);
@@ -610,7 +643,7 @@ fn exec_INC_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_INC_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running INC_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running INC_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_INC(p, adr);
@@ -618,7 +651,7 @@ fn exec_INC_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_INC_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running INC_AX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running INC_AX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_INC(p, adr);
@@ -626,7 +659,7 @@ fn exec_INC_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_INX_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running INX_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running INX_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     var val: u16 = p.x;
     if (val == 0xFF) {
@@ -639,7 +672,7 @@ fn exec_INX_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_INY_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running INY_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running INY_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     var val: u16 = p.y;
     if (val == 0xFF) {
@@ -652,7 +685,7 @@ fn exec_INY_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_JMP_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running JMP_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running JMP_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.pc = @intCast(adr);
@@ -660,7 +693,7 @@ fn exec_JMP_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDA_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDA_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const val = p.mem.mem[p.pc];
     p.pc = p.pc + 1;
@@ -671,7 +704,7 @@ fn exec_LDA_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDA_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDA_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     const val = p.mem.mem[adr];
@@ -682,7 +715,7 @@ fn exec_LDA_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDA_ZX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDA_ZX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     const val = p.mem.mem[adr];
@@ -693,10 +726,9 @@ fn exec_LDA_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDA_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDA_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
-    std.log.info("adr = {X}", .{adr});
     const val = p.mem.mem[adr];
     p.ac = val;
     p.setZeroFlag(val == 0);
@@ -705,10 +737,9 @@ fn exec_LDA_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDA_AX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDA_AX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
-    std.log.info("adr = {X}", .{adr});
     const val = p.mem.mem[adr];
     p.ac = val;
     p.setZeroFlag(val == 0);
@@ -717,10 +748,9 @@ fn exec_LDA_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_AY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDA_AY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDA_AY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
-    std.log.info("adr = {X}", .{adr});
     const val = p.mem.mem[adr];
     p.ac = val;
     p.setZeroFlag(val == 0);
@@ -729,10 +759,9 @@ fn exec_LDA_AY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_IX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDA_IX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDA_IX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
-    std.log.info("adr = {X}", .{adr});
     const val = p.mem.mem[adr];
     p.ac = val;
     p.setZeroFlag(val == 0);
@@ -741,10 +770,9 @@ fn exec_LDA_IX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_IY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDA_IY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDA_IY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
-    std.log.info("adr = {X}", .{adr});
     const val = p.mem.mem[adr];
     p.ac = val;
     p.setZeroFlag(val == 0);
@@ -753,7 +781,7 @@ fn exec_LDA_IY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDX_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDX_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDX_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const val = p.mem.mem[p.pc];
     p.pc = p.pc + 1;
@@ -764,7 +792,7 @@ fn exec_LDX_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDX_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDX_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDX_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     const val = p.mem.mem[adr];
@@ -775,7 +803,7 @@ fn exec_LDX_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDX_ZY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDX_ZY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDX_ZY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageYAddress(p);
     const val = p.mem.mem[adr];
@@ -786,7 +814,7 @@ fn exec_LDX_ZY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDX_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDA_ZY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDA_ZY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     const val = p.mem.mem[adr];
@@ -797,7 +825,7 @@ fn exec_LDX_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDX_AY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDX_AY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDX_AY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     const val = p.mem.mem[adr];
@@ -808,7 +836,7 @@ fn exec_LDX_AY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDY_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDY_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDY_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const val = p.mem.mem[p.pc];
     p.pc = p.pc + 1;
@@ -819,7 +847,7 @@ fn exec_LDY_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDY_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDY_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDY_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     const val = p.mem.mem[adr];
@@ -830,7 +858,7 @@ fn exec_LDY_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDY_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDY_ZX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDY_ZX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     const val = p.mem.mem[adr];
@@ -841,7 +869,7 @@ fn exec_LDY_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDY_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDY_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDY_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     const val = p.mem.mem[adr];
@@ -851,9 +879,8 @@ fn exec_LDY_A(p: *proc.Processor, cy: *i32) void {
     cy.* = cy.* - 2;
 }
 
-
 fn exec_LDY_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LDY_AX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LDY_AX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     const val = p.mem.mem[adr];
@@ -863,8 +890,21 @@ fn exec_LDY_AX(p: *proc.Processor, cy: *i32) void {
     cy.* = cy.* - 2;
 }
 
+fn exec_NOP_I(p: *proc.Processor, cy: *i32) void {
+    std.log.info("{X} running NOP_I, (cycle {d})", .{ p.pc, cy.* });
+    p.pc = p.pc + 1;
+    cy.* = cy.* - 2;
+}
+
+fn exec_SEC_I(p: *proc.Processor, cy: *i32) void {
+    std.log.info("{X} running SEC_I, (cycle {d})", .{ p.pc, cy.* });
+    p.pc = p.pc + 1;
+    p.setCarryFlag(true);
+    cy.* = cy.* - 2;
+}
+
 fn exec_STA_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STA_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STA_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -872,13 +912,12 @@ fn exec_STA_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STA_ZX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STA_ZX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     p.mem.mem[adr] = p.ac;
     cy.* = cy.* - 3;
 }
-
 
 fn exec_LSR(p: *proc.Processor, adr: usize) void {
     var val: u8 = undefined;
@@ -900,14 +939,14 @@ fn exec_LSR(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_LSR_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LSR_I, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LSR_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     exec_LSR(p, INVALID_ADDRESS);
     cy.* = cy.* - 2;
 }
 
 fn exec_LSR_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LSR_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LSR_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_LSR(p, adr);
@@ -915,7 +954,7 @@ fn exec_LSR_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LSR_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LSR_ZX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LSR_ZX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_LSR(p, adr);
@@ -923,7 +962,7 @@ fn exec_LSR_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LSR_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LSR_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LSR_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_LSR(p, adr);
@@ -931,7 +970,7 @@ fn exec_LSR_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LSR_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running LSR_AX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running LSR_AX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_LSR(p, adr);
@@ -939,7 +978,7 @@ fn exec_LSR_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STA_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STA_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -947,18 +986,15 @@ fn exec_STA_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STA_AX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STA_AX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
-
-    std.log.info("adr = {X})", .{adr});
-
     p.mem.mem[adr] = p.ac;
     cy.* = cy.* - 4;
 }
 
 fn exec_STA_AY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STA_AY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STA_AY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -966,7 +1002,7 @@ fn exec_STA_AY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_IX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STA_IX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STA_IX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -974,7 +1010,7 @@ fn exec_STA_IX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_IY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STA_IY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STA_IY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -982,7 +1018,7 @@ fn exec_STA_IY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STX_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STX_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STX_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     p.mem.mem[adr] = p.x;
@@ -990,7 +1026,7 @@ fn exec_STX_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STX_ZY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STX_ZY, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STX_ZY, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageYAddress(p);
     p.mem.mem[adr] = p.x;
@@ -998,7 +1034,7 @@ fn exec_STX_ZY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STX_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STX_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STX_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.mem.mem[adr] = p.x;
@@ -1006,7 +1042,7 @@ fn exec_STX_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STY_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STY_Z, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STY_Z, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     p.mem.mem[adr] = p.y;
@@ -1014,7 +1050,7 @@ fn exec_STY_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STY_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STY_ZX, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STY_ZX, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     p.mem.mem[adr] = p.y;
@@ -1022,7 +1058,7 @@ fn exec_STY_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STY_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("running STY_A, (cycle {d})", .{cy.*});
+    std.log.info("{X} running STY_A, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.mem.mem[adr] = p.y;
@@ -1141,7 +1177,7 @@ test "ADC_IY" {
 
 test "CLC_I" {
     var p = try runTest(&[_]u8{ LDA_I, 0x80, ADC_I, 0x80, CLC_I, 0x00 });
-    try std.testing.expect(! p.getCarryFlag());
+    try std.testing.expect(!p.getCarryFlag());
     (&p).deinit();
 }
 

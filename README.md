@@ -14,6 +14,7 @@ Currently, the following opcodes are implemented and their tests are available:
     ADC
     AND
     ASL
+    BCC
     CLC
     DEC
     DEX
@@ -24,4 +25,6 @@ Currently, the following opcodes are implemented and their tests are available:
     JMP
     LDA
     LSR
+    NOP
+    SEC
     STA

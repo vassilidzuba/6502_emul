@@ -1,0 +1,8 @@
+; test SEC
+
+; use carry
+CLC
+SEC
+LDA #$10
+ADC #$20
+STA $1000
