@@ -221,10 +221,16 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertImplied(p, pos, ops.TXS);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "TYA")) {
             pos = try insertImplied(p, pos, ops.TYA);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "RTS")) {
+            pos = try insertImplied(p, pos, ops.RTS);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "JMP")) {
             const tk2: Token = try nextToken(creader);
 
             pos = try insertAbsoluteAddress(&tk2, p, pos, ops.JMP_A, &labelList);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "JSR")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertAbsoluteAddress(&tk2, p, pos, ops.JSR_A, &labelList);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BCC")) {
             const tk2: Token = try nextToken(creader);
 

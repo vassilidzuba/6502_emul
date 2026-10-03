@@ -59,6 +59,8 @@ pub const INY_I = 0xC8;
 
 pub const JMP_A = 0x4C;
 
+pub const JSR_A = 0x20;
+
 pub const LDA_I = 0xA9;
 pub const LDA_Z = 0xA5;
 pub const LDA_ZX = 0xB5;
@@ -95,6 +97,8 @@ pub const PHP = 0x08;
 pub const PLA = 0x68;
 
 pub const PLP = 0x28;
+
+pub const RTS = 0x60;
 
 pub const SEC = 0x38;
 
@@ -191,6 +195,8 @@ pub fn initOpTable() void {
 
     addOpTable(JMP_A, exec_JMP_A, "JMP_A");
 
+    addOpTable(JSR_A, exec_JSR_A, "JSR_A");
+
     addOpTable(LDA_I, exec_LDA_I, "LDA_I");
     addOpTable(LDA_Z, exec_LDA_Z, "LDA_Z");
     addOpTable(LDA_ZX, exec_LDA_ZX, "LDA_ZX");
@@ -227,6 +233,8 @@ pub fn initOpTable() void {
     addOpTable(PLA, exec_PLA_I, "PLA");
 
     addOpTable(PLP, exec_PLP_I, "PLP");
+
+    addOpTable(RTS, exec_RTS_I, "RTS");
 
     addOpTable(SEC, exec_SEC_I, "SEC");
 
@@ -822,7 +830,25 @@ fn exec_JMP_A(p: *proc.Processor, cy: *i32) void {
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.pc = @intCast(adr);
-    cy.* = cy.* - 2;
+    cy.* = cy.* - 3;
+}
+
+fn exec_JSR_A(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    if (p.sp <= 1)  {
+        std.log.info("stack overflow", .{});
+    }
+    const adr = getAbsoluteAddress(p);
+
+    const spadr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    p.mem.mem[spadr] = @intCast(p.pc >> 8);
+    p.sp = p.sp - 1;
+    p.mem.mem[spadr - 1] = @intCast(p.pc & 0x00FF);
+    p.sp = p.sp - 1;
+
+    p.pc = @intCast(adr);
+    cy.* = cy.* - 6;
 }
 
 fn exec_LDA_I(p: *proc.Processor, cy: *i32) void {
@@ -1084,6 +1110,20 @@ fn exec_PLP_I(p: *proc.Processor, cy: *i32) void {
     p.setBreakFlag(br);
     std.log.info("sr = {X}", .{p.sr});
     cy.* = cy.* - 4;
+}
+
+fn exec_RTS_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+
+    p.sp = p.sp + 1;
+    const adr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    const lb = p.mem.mem[adr];
+    const hb = p.mem.mem[adr + 1];
+    p.sp = p.sp + 1;
+
+    p.pc = @as(u16, hb) << 8 | @as(u16, lb);
+    cy.* = cy.* - 6;
 }
 
 fn exec_SEC_I(p: *proc.Processor, cy: *i32) void {

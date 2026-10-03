@@ -23,7 +23,8 @@ Currently, the following opcodes are implemented and their tests are available:
     INC
     INX
     INY
-    JMP
+    JMP (partiel)
+    JSR
     LDA
     LSR
     NOP
@@ -31,6 +32,7 @@ Currently, the following opcodes are implemented and their tests are available:
     PHP
     PLA
     PLP
+    RTS
     SEC
     STA
     TAX

@@ -1,0 +1,13 @@
+; test RTS
+
+
+JSR sub
+LDX #$10
+JMP end
+
+sub:
+LDY #$20
+RTS
+
+end:
+NOP

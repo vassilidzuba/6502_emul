@@ -1,0 +1,11 @@
+; test JSR
+
+JSR sub
+LDA #$20;
+JMP end
+
+sub:
+LDA #$21;
+
+end:
+NOP

@@ -147,7 +147,17 @@ assert SR NEGATIVE
 run testdata/TXS.6502
 assert SP $FD
 
-enable
 run testdata/TYA.6502
 assert A $80
 assert SR NEGATIVE
+
+run testdata/JSR.6502
+assert A $21
+assert @01FF $CD
+assert @01FE $03
+
+enable
+run testdata/RTS.6502
+assert X $10
+assert Y $20
+assert SP $FF
