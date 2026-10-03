@@ -1,0 +1,15 @@
+; test BEQ
+
+LDA #$00
+BEQ next
+LDA #$10
+STA $10
+
+next:
+LDA #$01
+BEQ end
+LDA #$11
+STA $11
+
+end:
+NOP

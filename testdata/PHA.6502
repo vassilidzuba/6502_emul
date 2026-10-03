@@ -1,0 +1,6 @@
+; test PHA
+
+LDA #$12
+PHA
+LDA #$13
+PHA

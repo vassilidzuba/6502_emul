@@ -29,9 +29,15 @@ pub const ASL_ZX = 0x16;
 pub const ASL_A = 0x0E;
 pub const ASL_AX = 0x1E;
 
-pub const BCC_I = 0x90;
+pub const BCC = 0x90;
 
-pub const CLC_I = 0x18;
+pub const BCS = 0xB0;
+
+pub const BEQ = 0xB0;
+
+pub const BNE = 0xD0;
+
+pub const CLC = 0x18;
 
 pub const DEC_Z = 0xC6;
 pub const DEC_ZX = 0xD6;
@@ -80,9 +86,17 @@ pub const LSR_ZX = 0x56;
 pub const LSR_A = 0x4E;
 pub const LSR_AX = 0x5E;
 
-pub const NOP_I = 0xEA;
+pub const NOP = 0xEA;
 
-pub const SEC_I = 0x38;
+pub const PHA = 0x48;
+
+pub const PHP = 0x08;
+
+pub const PLA = 0x68;
+
+pub const PLP = 0x28;
+
+pub const SEC = 0x38;
 
 pub const STA_Z = 0x85;
 pub const STA_ZX = 0x95;
@@ -100,117 +114,156 @@ pub const STY_Z = 0x84;
 pub const STY_ZX = 0x94;
 pub const STY_A = 0x8C;
 
+pub const TAX = 0xAA;
+
+pub const TAY = 0xA8;
+
+pub const TSX = 0xBA;
+
+pub const TXA = 0x8A;
+
+pub const TXS = 0x9A;
+
+pub const TYA = 0x98;
+
 pub var opTable: [256]Op = undefined;
 
-fn addOpTable(code: u8, f: fn (*proc.Processor, *i32) void) void {
-    opTable[code] = .{ .code = code, .impl = f };
+fn addOpTable(code: u8, f: fn (*proc.Processor, *i32) void, label: []const u8) void {
+    opTable[code] = .{ .code = code, .label = label, .impl = f };
 }
 
 pub fn initOpTable() void {
     for (0..256) |ii| {
-        addOpTable(@intCast(ii), exec_ILLEG);
+        addOpTable(@intCast(ii), exec_ILLEG, "ILLEG");
     }
 
-    addOpTable(ADC_I, exec_ADC_I);
-    addOpTable(ADC_Z, exec_ADC_Z);
-    addOpTable(ADC_ZX, exec_ADC_ZX);
-    addOpTable(ADC_A, exec_ADC_A);
-    addOpTable(ADC_AX, exec_ADC_AX);
-    addOpTable(ADC_AY, exec_ADC_AY);
-    addOpTable(ADC_IX, exec_ADC_IX);
-    addOpTable(ADC_IY, exec_ADC_IY);
+    addOpTable(ADC_I, exec_ADC_I, "ADC_I");
+    addOpTable(ADC_Z, exec_ADC_Z, "ADC_Z");
+    addOpTable(ADC_ZX, exec_ADC_ZX, "ADC_ZX");
+    addOpTable(ADC_A, exec_ADC_A, "ADC_A");
+    addOpTable(ADC_AX, exec_ADC_AX, "ADC_AX");
+    addOpTable(ADC_AY, exec_ADC_AY, "ADC_AY");
+    addOpTable(ADC_IX, exec_ADC_IX, "ADC_IX");
+    addOpTable(ADC_IY, exec_ADC_IY, "ADC_IY");
 
-    addOpTable(AND_I, exec_AND_I);
-    addOpTable(AND_Z, exec_AND_Z);
-    addOpTable(AND_ZX, exec_AND_ZX);
-    addOpTable(AND_A, exec_AND_A);
-    addOpTable(AND_AX, exec_AND_AX);
-    addOpTable(AND_AY, exec_AND_AY);
-    addOpTable(AND_IX, exec_AND_IX);
-    addOpTable(AND_IY, exec_AND_IY);
+    addOpTable(AND_I, exec_AND_I, "AND_I");
+    addOpTable(AND_Z, exec_AND_Z, "AND_Z");
+    addOpTable(AND_ZX, exec_AND_ZX, "AND_ZX");
+    addOpTable(AND_A, exec_AND_A, "AND_A");
+    addOpTable(AND_AX, exec_AND_AX, "AND_AX");
+    addOpTable(AND_AY, exec_AND_AY, "AND_AY");
+    addOpTable(AND_IX, exec_AND_IX, "AND_IX");
+    addOpTable(AND_IY, exec_AND_IY, "AND_IY");
 
-    addOpTable(ASL_I, exec_ASL_I);
-    addOpTable(ASL_Z, exec_ASL_Z);
-    addOpTable(ASL_ZX, exec_ASL_ZX);
-    addOpTable(ASL_A, exec_ASL_A);
-    addOpTable(ASL_AX, exec_ASL_AX);
+    addOpTable(ASL_I, exec_ASL_I, "ASL_I");
+    addOpTable(ASL_Z, exec_ASL_Z, "ASL_Z");
+    addOpTable(ASL_ZX, exec_ASL_ZX, "ASL_ZX");
+    addOpTable(ASL_A, exec_ASL_A, "ASL_A");
+    addOpTable(ASL_AX, exec_ASL_AX, "ASL_AX");
 
-    addOpTable(BCC_I, exec_BCC_I);
+    addOpTable(BCC, exec_BCC_I, "BCC_R");
 
-    addOpTable(CLC_I, exec_CLC_I);
+    addOpTable(BCS, exec_BCS_I, "BCS_R");
 
-    addOpTable(DEC_Z, exec_DEC_Z);
-    addOpTable(DEC_ZX, exec_DEC_ZX);
-    addOpTable(DEC_A, exec_DEC_A);
-    addOpTable(DEC_AX, exec_DEC_AX);
+    addOpTable(BEQ, exec_BEQ_I, "BEQ_R");
 
-    addOpTable(DEX_I, exec_DEX_I);
+    addOpTable(BNE, exec_BNE_I, "BNE_R");
 
-    addOpTable(DEY_I, exec_DEY_I);
+    addOpTable(CLC, exec_CLC_I, "CLC");
 
-    addOpTable(INC_Z, exec_INC_Z);
-    addOpTable(INC_ZX, exec_INC_ZX);
-    addOpTable(INC_A, exec_INC_A);
-    addOpTable(INC_AX, exec_INC_AX);
+    addOpTable(DEC_Z, exec_DEC_Z, "DEC_Z");
+    addOpTable(DEC_ZX, exec_DEC_ZX, "DEC_ZX");
+    addOpTable(DEC_A, exec_DEC_A, "DEC_A");
+    addOpTable(DEC_AX, exec_DEC_AX, "DEC_AX");
 
-    addOpTable(INX_I, exec_INX_I);
+    addOpTable(DEX_I, exec_DEX_I, "DEX_I");
 
-    addOpTable(INY_I, exec_INY_I);
+    addOpTable(DEY_I, exec_DEY_I, "DEY_I");
 
-    addOpTable(JMP_A, exec_JMP_A);
+    addOpTable(INC_Z, exec_INC_Z, "INC_Z");
+    addOpTable(INC_ZX, exec_INC_ZX, "INC_ZX");
+    addOpTable(INC_A, exec_INC_A, "INC_A");
+    addOpTable(INC_AX, exec_INC_AX, "INC_AX");
 
-    addOpTable(LDA_I, exec_LDA_I);
-    addOpTable(LDA_Z, exec_LDA_Z);
-    addOpTable(LDA_ZX, exec_LDA_ZX);
-    addOpTable(LDA_A, exec_LDA_A);
-    addOpTable(LDA_AX, exec_LDA_AX);
-    addOpTable(LDA_AY, exec_LDA_AY);
-    addOpTable(LDA_IX, exec_LDA_IX);
-    addOpTable(LDA_IY, exec_LDA_IY);
+    addOpTable(INX_I, exec_INX_I, "INX_I");
 
-    addOpTable(LDX_I, exec_LDX_I);
-    addOpTable(LDX_Z, exec_LDX_Z);
-    addOpTable(LDX_ZY, exec_LDX_ZY);
-    addOpTable(LDX_A, exec_LDX_A);
-    addOpTable(LDX_AY, exec_LDX_AY);
+    addOpTable(INY_I, exec_INY_I, "INY_I");
 
-    addOpTable(LDY_I, exec_LDY_I);
-    addOpTable(LDY_Z, exec_LDY_Z);
-    addOpTable(LDY_ZX, exec_LDY_ZX);
-    addOpTable(LDY_A, exec_LDY_A);
-    addOpTable(LDY_AX, exec_LDY_AX);
+    addOpTable(JMP_A, exec_JMP_A, "JMP_A");
 
-    addOpTable(LSR_I, exec_LSR_I);
-    addOpTable(LSR_Z, exec_LSR_Z);
-    addOpTable(LSR_ZX, exec_LSR_ZX);
-    addOpTable(LSR_A, exec_LSR_A);
-    addOpTable(LSR_AX, exec_LSR_AX);
+    addOpTable(LDA_I, exec_LDA_I, "LDA_I");
+    addOpTable(LDA_Z, exec_LDA_Z, "LDA_Z");
+    addOpTable(LDA_ZX, exec_LDA_ZX, "LDA_ZX");
+    addOpTable(LDA_A, exec_LDA_A, "LDA_A");
+    addOpTable(LDA_AX, exec_LDA_AX, "LDA_AX");
+    addOpTable(LDA_AY, exec_LDA_AY, "LDA_AY");
+    addOpTable(LDA_IX, exec_LDA_IX, "LDA_IX");
+    addOpTable(LDA_IY, exec_LDA_IY, "LDA_IY");
 
-    addOpTable(NOP_I, exec_NOP_I);
+    addOpTable(LDX_I, exec_LDX_I, "LDX_I");
+    addOpTable(LDX_Z, exec_LDX_Z, "LDX_Z");
+    addOpTable(LDX_ZY, exec_LDX_ZY, "LDX_ZY");
+    addOpTable(LDX_A, exec_LDX_A, "LDX_A");
+    addOpTable(LDX_AY, exec_LDX_AY, "LDX_AY");
 
-    addOpTable(SEC_I, exec_SEC_I);
+    addOpTable(LDY_I, exec_LDY_I, "LDY_I");
+    addOpTable(LDY_Z, exec_LDY_Z, "LDY_Z");
+    addOpTable(LDY_ZX, exec_LDY_ZX, "LDY_ZX");
+    addOpTable(LDY_A, exec_LDY_A, "LDY_A");
+    addOpTable(LDY_AX, exec_LDY_AX, "LDY_AX");
 
-    addOpTable(STA_Z, exec_STA_Z);
-    addOpTable(STA_ZX, exec_STA_ZX);
-    addOpTable(STA_A, exec_STA_A);
-    addOpTable(STA_AX, exec_STA_AX);
-    addOpTable(STA_AY, exec_STA_AY);
-    addOpTable(STA_IX, exec_STA_IX);
-    addOpTable(STA_IY, exec_STA_IY);
+    addOpTable(LSR_I, exec_LSR_I, "LSR_I");
+    addOpTable(LSR_Z, exec_LSR_Z, "LSR_Z");
+    addOpTable(LSR_ZX, exec_LSR_ZX, "LSR_ZX");
+    addOpTable(LSR_A, exec_LSR_A, "LSR_A");
+    addOpTable(LSR_AX, exec_LSR_AX, "LSR_AX");
 
-    addOpTable(STX_Z, exec_STX_Z);
-    addOpTable(STX_ZY, exec_STX_ZY);
-    addOpTable(STX_A, exec_STX_A);
+    addOpTable(NOP, exec_NOP_I, "NOP");
 
-    addOpTable(STY_Z, exec_STY_Z);
-    addOpTable(STY_ZX, exec_STY_ZX);
-    addOpTable(STY_A, exec_STY_A);
+    addOpTable(PHA, exec_PHA_I, "PHA");
+
+    addOpTable(PHP, exec_PHP_I, "PHP");
+
+    addOpTable(PLA, exec_PLA_I, "PLA");
+
+    addOpTable(PLP, exec_PLP_I, "PLP");
+
+    addOpTable(SEC, exec_SEC_I, "SEC");
+
+    addOpTable(STA_Z, exec_STA_Z, "STA_Z");
+    addOpTable(STA_ZX, exec_STA_ZX, "STA_ZX");
+    addOpTable(STA_A, exec_STA_A, "STA_A");
+    addOpTable(STA_AX, exec_STA_AX, "STA_AX");
+    addOpTable(STA_AY, exec_STA_AY, "STA_AY");
+    addOpTable(STA_IX, exec_STA_IX, "STA_IX");
+    addOpTable(STA_IY, exec_STA_IY, "STA_IY");
+
+    addOpTable(STX_Z, exec_STX_Z, "STX_Z");
+    addOpTable(STX_ZY, exec_STX_ZY, "STX_ZY");
+    addOpTable(STX_A, exec_STX_A, "STX_A");
+
+    addOpTable(STY_Z, exec_STY_Z, "STY_Z");
+    addOpTable(STY_ZX, exec_STY_ZX, "STY_ZX");
+    addOpTable(STY_A, exec_STY_A, "STY_A");
+
+    addOpTable(TAX, exec_TAX_I, "TAX");
+
+    addOpTable(TAY, exec_TAY_I, "TAY");
+
+    addOpTable(TSX, exec_TSX_I, "TSX");
+
+    addOpTable(TXA, exec_TXA_I, "TXA");
+
+    addOpTable(TXS, exec_TXS_I, "TXS");
+
+    addOpTable(TYA, exec_TYA_I, "TYA");
 }
 
 const INVALID_ADDRESS: usize = std.math.maxInt(u32);
 
 pub const Op = struct {
     code: u8,
+    label: []const u8,
     impl: *const fn (p: *proc.Processor, cy: *i32) void,
 
     pub fn exec(self: *const Op, p: *proc.Processor, cy: *i32) void {
@@ -281,8 +334,53 @@ fn getIndirectYAddress(p: *proc.Processor) usize {
     return adr;
 }
 
+fn logOp(p: *proc.Processor) void {
+    const opcode = p.mem.mem[p.pc];
+    const label = opTable[opcode].label;
+    var buf: [12]u8 = undefined;
+
+    var arg: []u8 = undefined;
+
+    if (label.len == 3) {
+        arg = "";
+    } else if (label.len == 5 and label[4] == 'I') {
+        arg = std.fmt.bufPrint(&buf, "#${X:0>2}", .{p.mem.mem[p.pc + 1]}) catch "";
+    } else if (label.len == 5 and label[4] == 'Z') {
+        arg = std.fmt.bufPrint(&buf, "${X:0>2}", .{p.mem.mem[p.pc + 1]}) catch "";
+    } else if (label.len == 5 and label[4] == 'R') {
+        arg = std.fmt.bufPrint(&buf, "${X:0>2}", .{p.mem.mem[p.pc + 1]}) catch "";
+    } else if (label.len == 6 and label[4] == 'Z' and label[5] == 'X') {
+        arg = std.fmt.bufPrint(&buf, "${X:0>2},X", .{p.mem.mem[p.pc + 1]}) catch "";
+    } else if (label.len == 6 and label[4] == 'Z' and label[5] == 'Y') {
+        arg = std.fmt.bufPrint(&buf, "${X:0>2},Y", .{p.mem.mem[p.pc + 1]}) catch "";
+    } else if (label.len == 6 and label[4] == 'I' and label[5] == 'X') {
+        arg = std.fmt.bufPrint(&buf, "(${X:0>2},X)", .{p.mem.mem[p.pc + 1]}) catch "";
+    } else if (label.len == 6 and label[4] == 'I' and label[5] == 'Y') {
+        arg = std.fmt.bufPrint(&buf, "(${X:0>2}),Y", .{p.mem.mem[p.pc + 1]}) catch "";
+    } else if (label.len == 5 and label[4] == 'A') {
+        const val1 : u16 = @intCast(p.mem.mem[p.pc + 1]);
+        const val2 : u16 = @intCast(p.mem.mem[p.pc + 2]);
+        const val = val1 + val2 * 256;
+        arg = std.fmt.bufPrint(&buf, "${X:0>4}", .{val}) catch "";
+    } else if (label.len == 6 and label[4] == 'A' and label[5] == 'X') {
+        const val1 : u16 = @intCast(p.mem.mem[p.pc + 1]);
+        const val2 : u16 = @intCast(p.mem.mem[p.pc + 2]);
+        const val = val1 + val2 * 256;
+        arg = std.fmt.bufPrint(&buf, "${X:0>4},X", .{val}) catch "";
+    } else if (label.len == 6 and label[4] == 'A' and label[5] == 'Y') {
+        const val1 : u16 = @intCast(p.mem.mem[p.pc + 1]);
+        const val2 : u16 = @intCast(p.mem.mem[p.pc + 2]);
+        const val = val1 + val2 * 256;
+        arg = std.fmt.bufPrint(&buf, "${X:0>4},Y", .{val}) catch "";
+    } else {
+        arg = std.fmt.bufPrint(&buf, "???", .{}) catch "";
+    }
+
+    std.log.info("{X} running {s} {s}", .{ p.pc, label[0..3], arg });
+}
+
 fn exec_ILLEG(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} illegal opcode {X:0>2} (cycle {d})", .{ p.pc, p.mem.mem[p.pc], cy.* });
+    std.log.info("{X} illegal opcode {X:0>2}", .{ p.pc, p.mem.mem[p.pc] });
     cy.* = -1024;
 }
 
@@ -310,14 +408,14 @@ fn exec_ADC(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_ADC_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ADC_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     exec_ADC(p, INVALID_ADDRESS);
     cy.* = cy.* - 2;
 }
 
 fn exec_ADC_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ADC_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_ADC(p, adr);
@@ -325,7 +423,7 @@ fn exec_ADC_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ADC_ZX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_ADC(p, adr);
@@ -333,7 +431,7 @@ fn exec_ADC_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ADC_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_ADC(p, adr);
@@ -341,7 +439,7 @@ fn exec_ADC_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ADC_AX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
 
@@ -351,7 +449,7 @@ fn exec_ADC_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_AY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ADC_AY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     exec_ADC(p, adr);
@@ -359,7 +457,7 @@ fn exec_ADC_AY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_IX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ADC_IX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
     exec_ADC(p, adr);
@@ -367,7 +465,7 @@ fn exec_ADC_IX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ADC_IY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ADC_IY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     exec_ADC(p, adr);
@@ -391,14 +489,14 @@ fn exec_AND(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_AND_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running AND_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     exec_AND(p, INVALID_ADDRESS);
     cy.* = cy.* - 2;
 }
 
 fn exec_AND_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running AND_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_AND(p, adr);
@@ -406,7 +504,7 @@ fn exec_AND_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running AND_ZX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_AND(p, adr);
@@ -414,7 +512,7 @@ fn exec_AND_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running AND_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_AND(p, adr);
@@ -422,7 +520,7 @@ fn exec_AND_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running AND_AX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
 
@@ -432,7 +530,7 @@ fn exec_AND_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_AY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running AND_AY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     exec_AND(p, adr);
@@ -440,7 +538,7 @@ fn exec_AND_AY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_IX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running AND_IX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
     exec_AND(p, adr);
@@ -448,7 +546,7 @@ fn exec_AND_IX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_AND_IY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running AND_IY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     exec_AND(p, adr);
@@ -476,14 +574,14 @@ fn exec_ASL(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_ASL_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ASL_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     exec_ASL(p, INVALID_ADDRESS);
     cy.* = cy.* - 2;
 }
 
 fn exec_ASL_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ASL_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_ASL(p, adr);
@@ -491,7 +589,7 @@ fn exec_ASL_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ASL_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ASL_ZX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_ASL(p, adr);
@@ -499,7 +597,7 @@ fn exec_ASL_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ASL_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ASL_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_ASL(p, adr);
@@ -507,7 +605,7 @@ fn exec_ASL_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_ASL_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running ASL_AX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_ASL(p, adr);
@@ -524,7 +622,7 @@ fn jumpRelative(p: *proc.Processor) void {
 }
 
 fn exec_BCC_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running BCC_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     if (! p.getCarryFlag()) {
         jumpRelative(p);
@@ -532,13 +630,48 @@ fn exec_BCC_I(p: *proc.Processor, cy: *i32) void {
         p.pc = p.pc + 1;
     }
 
-    std.log.info("jump to {X}", .{ p.pc});
+    cy.* = cy.* - 2;
+}
+
+fn exec_BCS_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    if (p.getCarryFlag()) {
+        jumpRelative(p);
+    } else {
+        p.pc = p.pc + 1;
+    }
+
+    cy.* = cy.* - 2;
+}
+
+fn exec_BEQ_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    std.log.info("{X} running BEQ_I, (cycle {d})", .{ p.pc, cy.* });
+    p.pc = p.pc + 1;
+    if (p.getZeroFlag()) {
+        jumpRelative(p);
+    } else {
+        p.pc = p.pc + 1;
+    }
+
+    cy.* = cy.* - 2;
+}
+
+fn exec_BNE_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    if (! p.getZeroFlag()) {
+        jumpRelative(p);
+    } else {
+        p.pc = p.pc + 1;
+    }
 
     cy.* = cy.* - 2;
 }
 
 fn exec_CLC_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running CLC_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     p.setCarryFlag(false);
     cy.* = cy.* - 2;
@@ -557,7 +690,7 @@ fn exec_DEC(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_DEC_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running DEC_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_DEC(p, adr);
@@ -565,7 +698,7 @@ fn exec_DEC_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_DEC_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running DEC_ZX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_DEC(p, adr);
@@ -573,7 +706,7 @@ fn exec_DEC_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_DEC_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running DEC_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_DEC(p, adr);
@@ -581,7 +714,7 @@ fn exec_DEC_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_DEC_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running DEC_AX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_DEC(p, adr);
@@ -589,7 +722,7 @@ fn exec_DEC_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_DEX_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running DEX_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     var val: u16 = p.x;
     if (val == 0) {
@@ -602,7 +735,7 @@ fn exec_DEX_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_DEY_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running DEY_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     var val: u16 = p.y;
     if (val == 0) {
@@ -627,7 +760,7 @@ fn exec_INC(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_INC_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running INC_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_INC(p, adr);
@@ -635,7 +768,7 @@ fn exec_INC_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_INC_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running INC_ZX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_INC(p, adr);
@@ -643,7 +776,7 @@ fn exec_INC_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_INC_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running INC_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_INC(p, adr);
@@ -651,7 +784,7 @@ fn exec_INC_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_INC_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running INC_AX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_INC(p, adr);
@@ -659,7 +792,7 @@ fn exec_INC_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_INX_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running INX_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     var val: u16 = p.x;
     if (val == 0xFF) {
@@ -672,7 +805,7 @@ fn exec_INX_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_INY_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running INY_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     var val: u16 = p.y;
     if (val == 0xFF) {
@@ -685,7 +818,7 @@ fn exec_INY_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_JMP_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running JMP_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.pc = @intCast(adr);
@@ -693,7 +826,7 @@ fn exec_JMP_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDA_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const val = p.mem.mem[p.pc];
     p.pc = p.pc + 1;
@@ -704,7 +837,7 @@ fn exec_LDA_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDA_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     const val = p.mem.mem[adr];
@@ -715,7 +848,7 @@ fn exec_LDA_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDA_ZX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     const val = p.mem.mem[adr];
@@ -726,7 +859,7 @@ fn exec_LDA_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDA_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     const val = p.mem.mem[adr];
@@ -737,7 +870,7 @@ fn exec_LDA_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDA_AX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     const val = p.mem.mem[adr];
@@ -748,7 +881,7 @@ fn exec_LDA_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_AY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDA_AY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     const val = p.mem.mem[adr];
@@ -759,7 +892,7 @@ fn exec_LDA_AY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_IX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDA_IX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
     const val = p.mem.mem[adr];
@@ -770,7 +903,7 @@ fn exec_LDA_IX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDA_IY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDA_IY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     const val = p.mem.mem[adr];
@@ -781,7 +914,7 @@ fn exec_LDA_IY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDX_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDX_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const val = p.mem.mem[p.pc];
     p.pc = p.pc + 1;
@@ -792,7 +925,7 @@ fn exec_LDX_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDX_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDX_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     const val = p.mem.mem[adr];
@@ -803,7 +936,7 @@ fn exec_LDX_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDX_ZY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDX_ZY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageYAddress(p);
     const val = p.mem.mem[adr];
@@ -814,7 +947,7 @@ fn exec_LDX_ZY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDX_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDA_ZY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     const val = p.mem.mem[adr];
@@ -825,7 +958,7 @@ fn exec_LDX_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDX_AY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDX_AY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     const val = p.mem.mem[adr];
@@ -836,7 +969,7 @@ fn exec_LDX_AY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDY_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDY_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const val = p.mem.mem[p.pc];
     p.pc = p.pc + 1;
@@ -847,7 +980,7 @@ fn exec_LDY_I(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDY_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDY_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     const val = p.mem.mem[adr];
@@ -858,7 +991,7 @@ fn exec_LDY_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDY_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDY_ZX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     const val = p.mem.mem[adr];
@@ -869,7 +1002,7 @@ fn exec_LDY_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDY_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDY_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     const val = p.mem.mem[adr];
@@ -880,7 +1013,7 @@ fn exec_LDY_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LDY_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LDY_AX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     const val = p.mem.mem[adr];
@@ -891,20 +1024,77 @@ fn exec_LDY_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_NOP_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running NOP_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     cy.* = cy.* - 2;
 }
 
+fn exec_PHA_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    p.mem.mem[adr] = p.ac;
+    if (p.sp == 0)  {
+        std.log.info("stack overflow", .{});
+    }
+    p.sp = p.sp - 1;
+    cy.* = cy.* - 4;
+}
+
+fn exec_PHP_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    p.mem.mem[adr] = p.sr | proc.FLAG_BREAK;
+    if (p.sp == 0x00)  {
+        std.log.info("stack overflow", .{});
+    }
+    p.sp = p.sp - 1;
+    cy.* = cy.* - 4;
+}
+
+fn exec_PLA_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    if (p.sp == 0xFF)  {
+        std.log.info("stack underflow", .{});
+    }
+    p.sp = p.sp + 1;
+    const adr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    p.ac = p.mem.mem[adr];
+    p.setZeroFlag(p.ac == 0);
+    p.setNegativeFlag(p.ac & 0b10000000 != 0);
+    cy.* = cy.* - 4;
+}
+
+fn exec_PLP_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    if (p.sp == 0xFF)  {
+        std.log.info("stack underflow", .{});
+    }
+    p.sp = p.sp + 1;
+    const adr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    const br = p.getBreakFlag();
+    std.log.info("adr = {X}", .{adr});
+    p.sr = p.mem.mem[adr];
+    std.log.info("sr = {X}", .{p.sr});
+    p.setIgnoredFlag(false);
+    std.log.info("sr = {X}", .{p.sr});
+    p.setBreakFlag(br);
+    std.log.info("sr = {X}", .{p.sr});
+    cy.* = cy.* - 4;
+}
+
 fn exec_SEC_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running SEC_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     p.setCarryFlag(true);
     cy.* = cy.* - 2;
 }
 
 fn exec_STA_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STA_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -912,11 +1102,61 @@ fn exec_STA_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STA_ZX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     p.mem.mem[adr] = p.ac;
     cy.* = cy.* - 3;
+}
+
+fn exec_TAX_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    p.x = p.ac;
+    p.setZeroFlag(p.ac == 0);
+    p.setNegativeFlag(p.ac & 0b10000000 != 0);
+    cy.* = cy.* - 2;
+}
+
+fn exec_TAY_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    p.y = p.ac;
+    cy.* = cy.* - 2;
+}
+
+fn exec_TSX_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    p.x = p.sp;
+    p.setZeroFlag(p.x == 0);
+    p.setNegativeFlag(p.x & 0b10000000 != 0);
+    cy.* = cy.* - 2;
+}
+
+fn exec_TXA_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    p.ac = p.x;
+    p.setZeroFlag(p.ac == 0);
+    p.setNegativeFlag(p.ac & 0b10000000 != 0);
+    cy.* = cy.* - 2;
+}
+
+fn exec_TXS_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    p.sp = p.x;
+    cy.* = cy.* - 2;
+}
+
+fn exec_TYA_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    p.ac = p.y;
+    p.setZeroFlag(p.ac == 0);
+    p.setNegativeFlag(p.ac & 0b10000000 != 0);
+    cy.* = cy.* - 2;
 }
 
 fn exec_LSR(p: *proc.Processor, adr: usize) void {
@@ -939,14 +1179,14 @@ fn exec_LSR(p: *proc.Processor, adr: usize) void {
 }
 
 fn exec_LSR_I(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LSR_I, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     exec_LSR(p, INVALID_ADDRESS);
     cy.* = cy.* - 2;
 }
 
 fn exec_LSR_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LSR_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_LSR(p, adr);
@@ -954,7 +1194,7 @@ fn exec_LSR_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LSR_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LSR_ZX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_LSR(p, adr);
@@ -962,7 +1202,7 @@ fn exec_LSR_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LSR_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LSR_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_LSR(p, adr);
@@ -970,7 +1210,7 @@ fn exec_LSR_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_LSR_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running LSR_AX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_LSR(p, adr);
@@ -978,7 +1218,7 @@ fn exec_LSR_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STA_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -986,7 +1226,7 @@ fn exec_STA_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_AX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STA_AX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -994,7 +1234,7 @@ fn exec_STA_AX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_AY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STA_AY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -1002,7 +1242,7 @@ fn exec_STA_AY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_IX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STA_IX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -1010,7 +1250,7 @@ fn exec_STA_IX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STA_IY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STA_IY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     p.mem.mem[adr] = p.ac;
@@ -1018,7 +1258,7 @@ fn exec_STA_IY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STX_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STX_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     p.mem.mem[adr] = p.x;
@@ -1026,7 +1266,7 @@ fn exec_STX_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STX_ZY(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STX_ZY, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageYAddress(p);
     p.mem.mem[adr] = p.x;
@@ -1034,7 +1274,7 @@ fn exec_STX_ZY(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STX_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STX_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.mem.mem[adr] = p.x;
@@ -1042,7 +1282,7 @@ fn exec_STX_A(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STY_Z(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STY_Z, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     p.mem.mem[adr] = p.y;
@@ -1050,7 +1290,7 @@ fn exec_STY_Z(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STY_ZX(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STY_ZX, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     p.mem.mem[adr] = p.y;
@@ -1058,7 +1298,7 @@ fn exec_STY_ZX(p: *proc.Processor, cy: *i32) void {
 }
 
 fn exec_STY_A(p: *proc.Processor, cy: *i32) void {
-    std.log.info("{X} running STY_A, (cycle {d})", .{ p.pc, cy.* });
+    logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.mem.mem[adr] = p.y;
@@ -1093,256 +1333,4 @@ pub fn setProgram(p: *proc.Processor, program: []const u8) void {
 pub fn setProgramAndRun(p: *proc.Processor, program: []const u8) void {
     setProgram(p, program);
     run(p, 1000);
-}
-
-fn runTest(program: []const u8) !proc.Processor {
-    const ta = std.testing.allocator;
-    var p: proc.Processor = try proc.initProcessor(ta, 64_000);
-    initOpTable();
-    setProgramAndRun(&p, program);
-    return p;
-}
-
-test "ADC_I" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x10, ADC_I, 0x20, 0x00 });
-    try std.testing.expect(p.ac == 0x30);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    try std.testing.expect(!p.getCarryFlag());
-    (&p).deinit();
-}
-
-test "ADC_Z" {
-    var p = try runTest(&[_]u8{ LDA_I, 0xF1, STA_Z, 0x10, LDA_I, 0xF1, ADC_Z, 0x10, 0x00 });
-    try std.testing.expect(p.ac == 0xE2);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(p.getNegativeFlag());
-    try std.testing.expect(p.getCarryFlag());
-    (&p).deinit();
-}
-
-test "ADC_ZX" {
-    var p = try runTest(&[_]u8{ LDA_I, 0xF1, STA_Z, 0x11, LDA_I, 0xF1, LDX_I, 0x01, ADC_ZX, 0x10, 0x00 });
-    try std.testing.expect(p.ac == 0xE2);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(p.getNegativeFlag());
-    try std.testing.expect(p.getCarryFlag());
-    (&p).deinit();
-}
-
-test "ADC_A" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x10, STA_Z, 0x10, LDA_I, 0x20, STA_Z, 0x11, STA_A, 0x10, LDA_I, 0x11, ADC_A, 0x10, 0x00 });
-    try std.testing.expect(p.ac == 0x20);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    try std.testing.expect(!p.getCarryFlag());
-    (&p).deinit();
-}
-
-test "ADC_AX" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x20, STA_A, 0x11, 0x20, LDA_I, 0x22, LDX_I, 0x01, ADC_AX, 0x10, 0x20, 0x00 });
-    try std.testing.expect(p.ac == 0x42);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    try std.testing.expect(!p.getCarryFlag());
-    (&p).deinit();
-}
-
-test "ADC_AY" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x20, STA_A, 0x11, 0x20, LDA_I, 0x22, LDY_I, 0x01, ADC_AY, 0x10, 0x20, 0x00 });
-    try std.testing.expect(p.ac == 0x42);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    try std.testing.expect(!p.getCarryFlag());
-    (&p).deinit();
-}
-
-test "ADC_IX" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x10, STA_Z, 0x11, LDA_I, 0x20, STA_Z, 0x12, LDA_I, 0x42, STA_A, 0x10, 0x20, LDX_I, 0x01, LDA_I, 0x12, ADC_IX, 0x10, 0x00 });
-    try std.testing.expect(p.ac == 0x54);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    try std.testing.expect(!p.getCarryFlag());
-    (&p).deinit();
-}
-
-test "ADC_IY" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x10, STA_Z, 0x10, LDA_I, 0x20, STA_Z, 0x11, LDA_I, 0x42, STA_A, 0x11, 0x20, LDY_I, 0x01, LDA_I, 0x12, ADC_IY, 0x10, 0x00 });
-    try std.testing.expect(p.ac == 0x54);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    try std.testing.expect(!p.getCarryFlag());
-    (&p).deinit();
-}
-
-test "CLC_I" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x80, ADC_I, 0x80, CLC_I, 0x00 });
-    try std.testing.expect(!p.getCarryFlag());
-    (&p).deinit();
-}
-
-test "DEC_Z" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x72, STA_Z, 0x10, DEC_Z, 0x10, LDA_Z, 0x10, 0x00 });
-    try std.testing.expect(p.ac == 0x71);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "DEC_ZX" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x72, LDX_I, 0x01, STA_Z, 0x11, DEC_ZX, 0x10, LDA_Z, 0x11, 0x00 });
-    try std.testing.expect(p.ac == 0x71);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "DEC_A" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x72, STA_A, 0x10, 0x20, DEC_A, 0x10, 0x20, LDA_A, 0x10, 0x20, 0x00 });
-    try std.testing.expect(p.ac == 0x71);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "DEX_I" {
-    var p = try runTest(&[_]u8{ LDX_I, 0x22, DEX_I, 0x00 });
-    try std.testing.expect(p.x == 0x21);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "DEY_I" {
-    var p = try runTest(&[_]u8{ LDY_I, 0x22, DEY_I, 0x00 });
-    try std.testing.expect(p.y == 0x21);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "INC_Z" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x72, STA_Z, 0x10, INC_Z, 0x10, LDA_Z, 0x10, 0x00 });
-    try std.testing.expect(p.ac == 0x73);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "INC_ZX" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x72, LDX_I, 0x01, STA_Z, 0x11, INC_ZX, 0x10, LDA_Z, 0x11, 0x00 });
-    try std.testing.expect(p.ac == 0x73);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "INC_A" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x72, STA_A, 0x10, 0x20, INC_A, 0x10, 0x20, LDA_A, 0x10, 0x20, 0x00 });
-    try std.testing.expect(p.ac == 0x73);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "INX_I" {
-    var p = try runTest(&[_]u8{ LDX_I, 0x22, INX_I, 0x00 });
-    try std.testing.expect(p.x == 0x23);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "INY_I" {
-    var p = try runTest(&[_]u8{ LDY_I, 0x20, INY_I, 0x00 });
-    try std.testing.expect(p.y == 0x21);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "LDA_I" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x82, 0x00 });
-    try std.testing.expect(p.ac == 0x82);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(p.getNegativeFlag());
-    (&p).deinit();
-
-    p = try runTest(&[_]u8{ LDA_I, 0x00, 0x00 });
-    try std.testing.expect(p.ac == 0x00);
-    try std.testing.expect(p.getZeroFlag());
-    try std.testing.expect(!p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "LDA_Z" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x82, STA_Z, 0x10, LDA_I, 0x00, LDA_Z, 0x10, 0x00 });
-    try std.testing.expect(p.ac == 0x82);
-    try std.testing.expect(!p.getZeroFlag());
-    try std.testing.expect(p.getNegativeFlag());
-    (&p).deinit();
-}
-
-test "LDA_ZX" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x11, STA_Z, 0x21, LDA_I, 0x00, LDA_Z, 0x01, LDA_ZX, 0x21, 0x00 });
-    try std.testing.expect(p.ac == 0x11);
-    try std.testing.expect(!p.getZeroFlag());
-    (&p).deinit();
-}
-
-test "LDA_IX" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x10, STA_Z, 0x11, LDA_I, 0x20, STA_Z, 0x12, LDX_I, 0x01, LDA_I, 0x72, STA_A, 0x10, 0x20, LDA_I, 0xFF, LDA_IX, 0x10, 0x00 });
-    try std.testing.expect(p.ac == 0x72);
-    try std.testing.expect(!p.getZeroFlag());
-    (&p).deinit();
-}
-
-test "LDA_IY" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x10, STA_Z, 0x10, LDA_I, 0x20, STA_Z, 0x11, LDY_I, 0x01, LDA_I, 0x72, STA_A, 0x11, 0x20, LDA_I, 0xFF, LDA_IY, 0x10, 0x00 });
-    try std.testing.expect(p.ac == 0x72);
-    try std.testing.expect(!p.getZeroFlag());
-    (&p).deinit();
-}
-
-test "LDX_I" {
-    var p = try runTest(&[_]u8{ LDX_I, 0x72, 0x00 });
-    try std.testing.expect(p.x == 0x72);
-    (&p).deinit();
-}
-
-test "LDX_Z" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x72, STA_Z, 0x10, LDA_I, 0x00, LDX_Z, 0x10, 0x00 });
-
-    try std.testing.expect(p.x == 0x72);
-    (&p).deinit();
-}
-
-test "LDY_I" {
-    var p = try runTest(&[_]u8{ LDY_I, 0x72, 0x00 });
-    try std.testing.expect(p.y == 0x72);
-    (&p).deinit();
-}
-
-test "LDY_Z" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x72, STA_Z, 0x10, LDA_I, 0x00, LDY_Z, 0x10, 0x00 });
-    try std.testing.expect(p.y == 0x72);
-    (&p).deinit();
-}
-
-test "STA_Z" {
-    var p = try runTest(&[_]u8{ LDA_I, 0x72, STA_Z, 0x10, 0x00 });
-    try std.testing.expect(p.mem.mem[0x10] == 0x72);
-    (&p).deinit();
-}
-
-test "STX_Z" {
-    var p = try runTest(&[_]u8{ LDX_I, 0x72, STX_Z, 0x10, 0x00 });
-    try std.testing.expect(p.mem.mem[0x10] == 0x72);
-    (&p).deinit();
-}
-
-test "STY_Z" {
-    var p = try runTest(&[_]u8{ LDY_I, 0x72, STY_Z, 0x10, 0x00 });
-    try std.testing.expect(p.mem.mem[0x10] == 0x72);
-    (&p).deinit();
 }

@@ -1,0 +1,4 @@
+; test TAY
+
+LDA #$80
+TAY

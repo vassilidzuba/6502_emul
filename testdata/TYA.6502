@@ -1,0 +1,5 @@
+; test TYA
+
+LDY #$80
+LDA #$10
+TYA

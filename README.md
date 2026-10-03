@@ -15,6 +15,7 @@ Currently, the following opcodes are implemented and their tests are available:
     AND
     ASL
     BCC
+    BCS
     CLC
     DEC
     DEX
@@ -26,5 +27,15 @@ Currently, the following opcodes are implemented and their tests are available:
     LDA
     LSR
     NOP
+    PHA
+    PHP
+    PLA
+    PLP
     SEC
     STA
+    TAX
+    TAY
+    TSX
+    TXA
+    TXS
+    TYA

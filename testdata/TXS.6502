@@ -1,0 +1,4 @@
+; test TXS
+
+LDX #$FD
+TXS

@@ -100,6 +100,36 @@ fn runTestFromReader(io: std.Io, allocator: std.mem.Allocator, creader: *cr.Char
                     return TesterErrors.assertionFails;
                 }
                 std.log.info(">>> assertion suceeded : {s} {s}", .{ addr, sval });
+            } else if (std.mem.eql(u8, addr, "SP")) {
+                const val = try getU8(sval);
+                const ok = p.sp == val;
+                if (!ok) {
+                    std.log.info(">>> assertion failed : {s} {s}", .{ addr, sval });
+                    return TesterErrors.assertionFails;
+                }
+                std.log.info(">>> assertion suceeded : {s} {s}", .{ addr, sval });
+            } else if (std.mem.eql(u8, addr, "SR")) {
+                if (std.mem.eql(u8, sval, "NEGATIVE")) {
+                    if (!p.getNegativeFlag()) {
+                        std.log.info(">>> assertion failed : {s} {s}", .{ addr, sval });
+                        return TesterErrors.assertionFails;
+                    }
+                } else if (std.mem.eql(u8, sval, "CARRY")) {
+                    if (!p.getCarryFlag()) {
+                        std.log.info(">>> assertion failed : {s} {s}", .{ addr, sval });
+                        return TesterErrors.assertionFails;
+                    }
+                } else if (std.mem.eql(u8, sval, "ZERO")) {
+                    if (!p.getZeroFlag()) {
+                        std.log.info(">>> assertion failed : {s} {s}", .{ addr, sval });
+                        return TesterErrors.assertionFails;
+                    }
+                } else {
+                    std.log.info(">>> unknown flag : {s}", .{sval});
+                    return TesterErrors.assertionFails;
+                }
+
+                std.log.info(">>> assertion suceeded : {s} {s}", .{ addr, sval });
             } else if (addr[0] == '@' and addr.len == 3) {
                 const val = try getU8(sval);
                 const addr2 = try getU8(addr);
@@ -201,11 +231,10 @@ pub fn getDigit(ch: u8) !u8 {
     }
 }
 
-
 pub fn getBinary(s: []const u8) !u8 {
-    var val : u8 = 0;
+    var val: u8 = 0;
     for (s) |ch| {
-        if (ch  == '0') {
+        if (ch == '0') {
             val = val * 2;
         } else if (ch == '1') {
             val = val * 2 + 1;

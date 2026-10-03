@@ -1,0 +1,5 @@
+; test TXA
+
+LDX #$80
+LDA #$10
+TXA

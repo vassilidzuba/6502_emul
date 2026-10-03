@@ -1,0 +1,10 @@
+; test PLA
+
+LDA #$10
+PHA
+
+LDA #$82
+PHA
+
+LDA #$12
+PLA

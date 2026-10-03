@@ -99,8 +99,55 @@ assert @1011 $01
 run testdata/SEC.6502
 assert @1000 $31
 
-enable
 run testdata/BCC.6502
 assert @0010 $00
 assert @0011 $10
 assert @0012 $20
+
+run testdata/BEQ.6502
+assert @0010 $00
+assert @0011 $11
+
+run testdata/BNE.6502
+assert @0010 $00
+assert @0011 $11
+
+run testdata/PHA.6502
+assert @01FF $12
+assert @01FE $13
+
+run testdata/PHP.6502
+assert @01FF $10
+assert @01FE $11
+
+run testdata/PLA.6502
+assert @01FF $10
+assert SR NEGATIVE
+
+run testdata/PLP.6502
+assert @01FF $01
+assert SR CARRY
+
+run testdata/TAX.6502
+assert X $80
+assert SR NEGATIVE
+
+run testdata/TAY.6502
+assert Y $80
+assert SR NEGATIVE
+
+run testdata/TSX.6502
+assert X $FD
+assert SR NEGATIVE
+
+run testdata/TXA.6502
+assert A $80
+assert SR NEGATIVE
+
+run testdata/TXS.6502
+assert SP $FD
+
+enable
+run testdata/TYA.6502
+assert A $80
+assert SR NEGATIVE

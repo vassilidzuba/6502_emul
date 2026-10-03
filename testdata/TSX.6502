@@ -1,0 +1,6 @@
+; test TSX
+
+LDA #$10
+PHA
+PHA
+TSX

@@ -1,0 +1,5 @@
+; test PLP
+
+LDA  #%00000001
+PHA
+PLP

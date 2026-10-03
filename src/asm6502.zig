@@ -196,11 +196,31 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "INY")) {
             pos = try insertImplied(p, pos, ops.INY_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLC")) {
-            pos = try insertImplied(p, pos, ops.CLC_I);
+            pos = try insertImplied(p, pos, ops.CLC);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "SEC")) {
-            pos = try insertImplied(p, pos, ops.SEC_I);
+            pos = try insertImplied(p, pos, ops.SEC);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "NOP")) {
-            pos = try insertImplied(p, pos, ops.NOP_I);
+            pos = try insertImplied(p, pos, ops.NOP);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "PHA")) {
+            pos = try insertImplied(p, pos, ops.PHA);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "PHP")) {
+            pos = try insertImplied(p, pos, ops.PHP);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "PLA")) {
+            pos = try insertImplied(p, pos, ops.PLA);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "PLP")) {
+            pos = try insertImplied(p, pos, ops.PLP);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "TAX")) {
+            pos = try insertImplied(p, pos, ops.TAX);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "TAY")) {
+            pos = try insertImplied(p, pos, ops.TAY);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "TSX")) {
+            pos = try insertImplied(p, pos, ops.TSX);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "TXA")) {
+            pos = try insertImplied(p, pos, ops.TXA);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "TXS")) {
+            pos = try insertImplied(p, pos, ops.TXS);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "TYA")) {
+            pos = try insertImplied(p, pos, ops.TYA);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "JMP")) {
             const tk2: Token = try nextToken(creader);
 
@@ -208,7 +228,19 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BCC")) {
             const tk2: Token = try nextToken(creader);
 
-            pos = try insertRelativeAddress(&tk2, p, pos, ops.BCC_I, &labelList);
+            pos = try insertRelativeAddress(&tk2, p, pos, ops.BCC, &labelList);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BCS")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertRelativeAddress(&tk2, p, pos, ops.BCS, &labelList);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BEQ")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertRelativeAddress(&tk2, p, pos, ops.BEQ, &labelList);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BNE")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertRelativeAddress(&tk2, p, pos, ops.BNE, &labelList);
         } else {
             std.log.err("Unknown opcode: {s}", .{tk.buf[0..tk.pos]});
             return AsmErrors.unknownOpcode;

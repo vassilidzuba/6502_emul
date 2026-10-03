@@ -1,0 +1,15 @@
+; test BNE
+
+LDA #$01
+BNE next
+LDA #$10
+STA $10
+
+next:
+LDA #$00
+BNE end
+LDA #$11
+STA $11
+
+end:
+NOP

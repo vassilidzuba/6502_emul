@@ -46,7 +46,7 @@ pub const Processor = struct {
         self.x = 0;
         self.y = 0;
         self.sr = 0;
-        self.sp = 0;
+        self.sp = 0xFF;
         self.mem.reset();
 
     }
@@ -135,6 +135,23 @@ pub const Processor = struct {
 
     pub inline fn setCarryFlag(self: *Processor, val: bool) void {
         setFlag(self, FLAG_CARRY, val);
+    }
+
+    pub inline fn getBreakFlag(self: *Processor) bool {
+        return getFlag(self, FLAG_BREAK);
+    }
+
+    pub inline fn setBreakFlag(self: *Processor, val: bool) void {
+        setFlag(self, FLAG_BREAK, val);
+    }
+
+
+    pub inline fn getIgnoredFlag(self: *Processor) bool {
+        return getFlag(self, FLAG_IGNORED);
+    }
+
+    pub inline fn setIgnoredFlag(self: *Processor, val: bool) void {
+        setFlag(self, FLAG_IGNORED, val);
     }
 };
 

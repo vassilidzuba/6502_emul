@@ -1,0 +1,4 @@
+; test TAX
+
+LDA #$80
+TAX
