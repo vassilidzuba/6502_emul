@@ -145,7 +145,11 @@ pub const TYA = 0x98;
 
 pub var opTable: [256]Op = undefined;
 
-fn addOpTable(code: u8, f: fn (*proc.Processor, *i32) void, label: []const u8) void {
+const OpsError = error {
+    illegalOpcode,
+};
+
+fn addOpTable(code: u8, f: fn (*proc.Processor) OpsError!void, label: []const u8) void {
     opTable[code] = .{ .code = code, .label = label, .impl = f };
 }
 
@@ -298,10 +302,10 @@ const INVALID_ADDRESS: usize = std.math.maxInt(u32);
 pub const Op = struct {
     code: u8,
     label: []const u8,
-    impl: *const fn (p: *proc.Processor, cy: *i32) void,
+    impl: *const fn (p: *proc.Processor) OpsError!void,
 
-    pub fn exec(self: *const Op, p: *proc.Processor, cy: *i32) void {
-        self.impl(p, cy);
+    pub fn exec(self: *const Op, p: *proc.Processor) OpsError!void {
+        try self.impl(p);
     }
 };
 
@@ -414,13 +418,13 @@ fn logOp(p: *proc.Processor) void {
             arg = std.fmt.bufPrint(&buf, "???", .{}) catch "";
         }
 
-        std.log.info("{X} running {s} {s}", .{ p.pc, label[0..3], arg });
+        std.log.info("{X}: {s} {s}", .{ p.pc, label[0..3], arg });
     }
 }
 
-fn exec_ILLEG(p: *proc.Processor, cy: *i32) void {
+fn exec_ILLEG(p: *proc.Processor) OpsError!void {
     std.log.info("{X} illegal opcode {X:0>2}", .{ p.pc, p.mem.mem[p.pc] });
-    cy.* = -1024;
+    return OpsError.illegalOpcode;
 }
 
 fn exec_ADC(p: *proc.Processor, adr: usize) void {
@@ -446,69 +450,69 @@ fn exec_ADC(p: *proc.Processor, adr: usize) void {
     p.setNegativeFlag(val & 0b10000000 != 0);
 }
 
-fn exec_ADC_I(p: *proc.Processor, cy: *i32) void {
+fn exec_ADC_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     exec_ADC(p, INVALID_ADDRESS);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ADC_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_ADC_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_ADC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ADC_ZX(p: *proc.Processor, cy: *i32) void {
+fn exec_ADC_ZX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_ADC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ADC_A(p: *proc.Processor, cy: *i32) void {
+fn exec_ADC_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_ADC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ADC_AX(p: *proc.Processor, cy: *i32) void {
+fn exec_ADC_AX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
 
     std.log.info("address is {X}", .{adr});
     exec_ADC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ADC_AY(p: *proc.Processor, cy: *i32) void {
+fn exec_ADC_AY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     exec_ADC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ADC_IX(p: *proc.Processor, cy: *i32) void {
+fn exec_ADC_IX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
     exec_ADC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ADC_IY(p: *proc.Processor, cy: *i32) void {
+fn exec_ADC_IY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     exec_ADC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
 fn exec_AND(p: *proc.Processor, adr: usize) void {
@@ -527,69 +531,69 @@ fn exec_AND(p: *proc.Processor, adr: usize) void {
     p.setNegativeFlag(val & 0b10000000 != 0);
 }
 
-fn exec_AND_I(p: *proc.Processor, cy: *i32) void {
+fn exec_AND_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     exec_AND(p, INVALID_ADDRESS);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_AND_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_AND_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_AND(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_AND_ZX(p: *proc.Processor, cy: *i32) void {
+fn exec_AND_ZX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_AND(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_AND_A(p: *proc.Processor, cy: *i32) void {
+fn exec_AND_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_AND(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_AND_AX(p: *proc.Processor, cy: *i32) void {
+fn exec_AND_AX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
 
     std.log.info("address is {X}", .{adr});
     exec_AND(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_AND_AY(p: *proc.Processor, cy: *i32) void {
+fn exec_AND_AY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     exec_AND(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_AND_IX(p: *proc.Processor, cy: *i32) void {
+fn exec_AND_IX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
     exec_AND(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_AND_IY(p: *proc.Processor, cy: *i32) void {
+fn exec_AND_IY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     exec_AND(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
 fn exec_ASL(p: *proc.Processor, adr: usize) void {
@@ -612,43 +616,43 @@ fn exec_ASL(p: *proc.Processor, adr: usize) void {
     }
 }
 
-fn exec_ASL_I(p: *proc.Processor, cy: *i32) void {
+fn exec_ASL_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     exec_ASL(p, INVALID_ADDRESS);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ASL_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_ASL_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_ASL(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ASL_ZX(p: *proc.Processor, cy: *i32) void {
+fn exec_ASL_ZX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_ASL(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ASL_A(p: *proc.Processor, cy: *i32) void {
+fn exec_ASL_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_ASL(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_ASL_AX(p: *proc.Processor, cy: *i32) void {
+fn exec_ASL_AX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_ASL(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
 fn jumpRelative(p: *proc.Processor) void {
@@ -660,7 +664,7 @@ fn jumpRelative(p: *proc.Processor) void {
     }
 }
 
-fn exec_BCC_I(p: *proc.Processor, cy: *i32) void {
+fn exec_BCC_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (!p.getCarryFlag()) {
@@ -669,10 +673,10 @@ fn exec_BCC_I(p: *proc.Processor, cy: *i32) void {
         p.pc = p.pc + 1;
     }
 
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_BCS_I(p: *proc.Processor, cy: *i32) void {
+fn exec_BCS_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (p.getCarryFlag()) {
@@ -681,10 +685,10 @@ fn exec_BCS_I(p: *proc.Processor, cy: *i32) void {
         p.pc = p.pc + 1;
     }
 
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_BEQ_I(p: *proc.Processor, cy: *i32) void {
+fn exec_BEQ_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (p.getZeroFlag()) {
@@ -693,10 +697,10 @@ fn exec_BEQ_I(p: *proc.Processor, cy: *i32) void {
         p.pc = p.pc + 1;
     }
 
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_BIT_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_BIT_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const addr = getZeropageAddress(p);
@@ -707,10 +711,10 @@ fn exec_BIT_Z(p: *proc.Processor, cy: *i32) void {
     p.setZeroFlag((val & p.ac) == 0);
     p.sr = p.sr | (val & 0b11000000);
 
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_BIT_A(p: *proc.Processor, cy: *i32) void {
+fn exec_BIT_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const addr = getAbsoluteAddress(p);
@@ -719,10 +723,10 @@ fn exec_BIT_A(p: *proc.Processor, cy: *i32) void {
     p.setZeroFlag((val & p.ac) == 0);
     p.sr = p.sr | (val & 0b11000000);
 
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_BNE_I(p: *proc.Processor, cy: *i32) void {
+fn exec_BNE_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (!p.getZeroFlag()) {
@@ -731,10 +735,10 @@ fn exec_BNE_I(p: *proc.Processor, cy: *i32) void {
         p.pc = p.pc + 1;
     }
 
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_BPL_I(p: *proc.Processor, cy: *i32) void {
+fn exec_BPL_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (!p.getNegativeFlag()) {
@@ -743,10 +747,10 @@ fn exec_BPL_I(p: *proc.Processor, cy: *i32) void {
         p.pc = p.pc + 1;
     }
 
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_BMI_I(p: *proc.Processor, cy: *i32) void {
+fn exec_BMI_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (p.getNegativeFlag()) {
@@ -755,10 +759,10 @@ fn exec_BMI_I(p: *proc.Processor, cy: *i32) void {
         p.pc = p.pc + 1;
     }
 
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_BVC_I(p: *proc.Processor, cy: *i32) void {
+fn exec_BVC_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (! p.getOverflowFlag()) {
@@ -767,11 +771,11 @@ fn exec_BVC_I(p: *proc.Processor, cy: *i32) void {
         p.pc = p.pc + 1;
     }
 
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
 
-fn exec_BVS_I(p: *proc.Processor, cy: *i32) void {
+fn exec_BVS_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (p.getOverflowFlag()) {
@@ -780,20 +784,20 @@ fn exec_BVS_I(p: *proc.Processor, cy: *i32) void {
         p.pc = p.pc + 1;
     }
 
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
-fn exec_CLC_I(p: *proc.Processor, cy: *i32) void {
+fn exec_CLC_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.setCarryFlag(false);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_CLV_I(p: *proc.Processor, cy: *i32) void {
+fn exec_CLV_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.setOverflowFlag(false);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
 fn exec_DEC(p: *proc.Processor, adr: usize) void {
@@ -808,39 +812,39 @@ fn exec_DEC(p: *proc.Processor, adr: usize) void {
     p.setNegativeFlag(val & 0b10000000 != 0);
 }
 
-fn exec_DEC_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_DEC_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_DEC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_DEC_ZX(p: *proc.Processor, cy: *i32) void {
+fn exec_DEC_ZX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_DEC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_DEC_A(p: *proc.Processor, cy: *i32) void {
+fn exec_DEC_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_DEC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_DEC_AX(p: *proc.Processor, cy: *i32) void {
+fn exec_DEC_AX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_DEC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_DEX_I(p: *proc.Processor, cy: *i32) void {
+fn exec_DEX_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     var val: u16 = p.x;
@@ -850,10 +854,10 @@ fn exec_DEX_I(p: *proc.Processor, cy: *i32) void {
         val = val - 1;
     }
     p.x = @intCast(val);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_DEY_I(p: *proc.Processor, cy: *i32) void {
+fn exec_DEY_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     var val: u16 = p.y;
@@ -863,7 +867,7 @@ fn exec_DEY_I(p: *proc.Processor, cy: *i32) void {
         val = val - 1;
     }
     p.y = @intCast(val);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
 fn exec_INC(p: *proc.Processor, adr: usize) void {
@@ -878,39 +882,39 @@ fn exec_INC(p: *proc.Processor, adr: usize) void {
     p.setNegativeFlag(val & 0b10000000 != 0);
 }
 
-fn exec_INC_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_INC_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_INC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_INC_ZX(p: *proc.Processor, cy: *i32) void {
+fn exec_INC_ZX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_INC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_INC_A(p: *proc.Processor, cy: *i32) void {
+fn exec_INC_A(p: *proc.Processor)OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_INC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_INC_AX(p: *proc.Processor, cy: *i32) void {
+fn exec_INC_AX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_INC(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_INX_I(p: *proc.Processor, cy: *i32) void {
+fn exec_INX_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     var val: u16 = p.x;
@@ -920,10 +924,10 @@ fn exec_INX_I(p: *proc.Processor, cy: *i32) void {
         val = val + 1;
     }
     p.x = @intCast(val);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_INY_I(p: *proc.Processor, cy: *i32) void {
+fn exec_INY_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     var val: u16 = p.y;
@@ -933,18 +937,18 @@ fn exec_INY_I(p: *proc.Processor, cy: *i32) void {
         val = val + 1;
     }
     p.y = @intCast(val);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_JMP_A(p: *proc.Processor, cy: *i32) void {
+fn exec_JMP_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.pc = @intCast(adr);
-    cy.* = cy.* - 3;
+    p.addTicks( 3);
 }
 
-fn exec_JSR_A(p: *proc.Processor, cy: *i32) void {
+fn exec_JSR_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (p.sp <= 1) {
@@ -959,10 +963,10 @@ fn exec_JSR_A(p: *proc.Processor, cy: *i32) void {
     p.sp = p.sp - 1;
 
     p.pc = @intCast(adr);
-    cy.* = cy.* - 6;
+    p.addTicks( 6);
 }
 
-fn exec_LDA_I(p: *proc.Processor, cy: *i32) void {
+fn exec_LDA_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const val = p.mem.mem[p.pc];
@@ -970,10 +974,10 @@ fn exec_LDA_I(p: *proc.Processor, cy: *i32) void {
     p.ac = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDA_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_LDA_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
@@ -981,10 +985,10 @@ fn exec_LDA_Z(p: *proc.Processor, cy: *i32) void {
     p.ac = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDA_ZX(p: *proc.Processor, cy: *i32) void {
+fn exec_LDA_ZX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
@@ -992,10 +996,10 @@ fn exec_LDA_ZX(p: *proc.Processor, cy: *i32) void {
     p.ac = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_LDA_A(p: *proc.Processor, cy: *i32) void {
+fn exec_LDA_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
@@ -1003,10 +1007,10 @@ fn exec_LDA_A(p: *proc.Processor, cy: *i32) void {
     p.ac = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_LDA_AX(p: *proc.Processor, cy: *i32) void {
+fn exec_LDA_AX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
@@ -1014,10 +1018,10 @@ fn exec_LDA_AX(p: *proc.Processor, cy: *i32) void {
     p.ac = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_LDA_AY(p: *proc.Processor, cy: *i32) void {
+fn exec_LDA_AY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
@@ -1025,10 +1029,10 @@ fn exec_LDA_AY(p: *proc.Processor, cy: *i32) void {
     p.ac = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_LDA_IX(p: *proc.Processor, cy: *i32) void {
+fn exec_LDA_IX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
@@ -1036,10 +1040,10 @@ fn exec_LDA_IX(p: *proc.Processor, cy: *i32) void {
     p.ac = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_LDA_IY(p: *proc.Processor, cy: *i32) void {
+fn exec_LDA_IY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
@@ -1047,10 +1051,10 @@ fn exec_LDA_IY(p: *proc.Processor, cy: *i32) void {
     p.ac = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_LDX_I(p: *proc.Processor, cy: *i32) void {
+fn exec_LDX_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const val = p.mem.mem[p.pc];
@@ -1058,10 +1062,10 @@ fn exec_LDX_I(p: *proc.Processor, cy: *i32) void {
     p.x = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDX_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_LDX_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
@@ -1069,10 +1073,10 @@ fn exec_LDX_Z(p: *proc.Processor, cy: *i32) void {
     p.x = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDX_ZY(p: *proc.Processor, cy: *i32) void {
+fn exec_LDX_ZY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageYAddress(p);
@@ -1080,10 +1084,10 @@ fn exec_LDX_ZY(p: *proc.Processor, cy: *i32) void {
     p.x = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDX_A(p: *proc.Processor, cy: *i32) void {
+fn exec_LDX_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
@@ -1091,10 +1095,10 @@ fn exec_LDX_A(p: *proc.Processor, cy: *i32) void {
     p.x = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDX_AY(p: *proc.Processor, cy: *i32) void {
+fn exec_LDX_AY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
@@ -1102,10 +1106,10 @@ fn exec_LDX_AY(p: *proc.Processor, cy: *i32) void {
     p.x = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDY_I(p: *proc.Processor, cy: *i32) void {
+fn exec_LDY_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const val = p.mem.mem[p.pc];
@@ -1113,10 +1117,10 @@ fn exec_LDY_I(p: *proc.Processor, cy: *i32) void {
     p.y = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDY_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_LDY_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
@@ -1124,10 +1128,10 @@ fn exec_LDY_Z(p: *proc.Processor, cy: *i32) void {
     p.y = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDY_ZX(p: *proc.Processor, cy: *i32) void {
+fn exec_LDY_ZX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
@@ -1135,10 +1139,10 @@ fn exec_LDY_ZX(p: *proc.Processor, cy: *i32) void {
     p.y = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDY_A(p: *proc.Processor, cy: *i32) void {
+fn exec_LDY_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
@@ -1146,10 +1150,10 @@ fn exec_LDY_A(p: *proc.Processor, cy: *i32) void {
     p.y = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LDY_AX(p: *proc.Processor, cy: *i32) void {
+fn exec_LDY_AX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
@@ -1157,16 +1161,16 @@ fn exec_LDY_AX(p: *proc.Processor, cy: *i32) void {
     p.y = val;
     p.setZeroFlag(val == 0);
     p.setNegativeFlag(val & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_NOP_I(p: *proc.Processor, cy: *i32) void {
+fn exec_NOP_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_PHA_I(p: *proc.Processor, cy: *i32) void {
+fn exec_PHA_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr: u16 = 0x0100 + @as(u16, @intCast(p.sp));
@@ -1175,10 +1179,10 @@ fn exec_PHA_I(p: *proc.Processor, cy: *i32) void {
         std.log.info("stack overflow", .{});
     }
     p.sp = p.sp - 1;
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_PHP_I(p: *proc.Processor, cy: *i32) void {
+fn exec_PHP_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr: u16 = 0x0100 + @as(u16, @intCast(p.sp));
@@ -1187,10 +1191,10 @@ fn exec_PHP_I(p: *proc.Processor, cy: *i32) void {
         std.log.info("stack overflow", .{});
     }
     p.sp = p.sp - 1;
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_PLA_I(p: *proc.Processor, cy: *i32) void {
+fn exec_PLA_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (p.sp == 0xFF) {
@@ -1201,10 +1205,10 @@ fn exec_PLA_I(p: *proc.Processor, cy: *i32) void {
     p.ac = p.mem.mem[adr];
     p.setZeroFlag(p.ac == 0);
     p.setNegativeFlag(p.ac & 0b10000000 != 0);
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_PLP_I(p: *proc.Processor, cy: *i32) void {
+fn exec_PLP_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     if (p.sp == 0xFF) {
@@ -1213,17 +1217,13 @@ fn exec_PLP_I(p: *proc.Processor, cy: *i32) void {
     p.sp = p.sp + 1;
     const adr: u16 = 0x0100 + @as(u16, @intCast(p.sp));
     const br = p.getBreakFlag();
-    std.log.info("adr = {X}", .{adr});
     p.sr = p.mem.mem[adr];
-    std.log.info("sr = {X}", .{p.sr});
     p.setIgnoredFlag(false);
-    std.log.info("sr = {X}", .{p.sr});
     p.setBreakFlag(br);
-    std.log.info("sr = {X}", .{p.sr});
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_RTS_I(p: *proc.Processor, cy: *i32) void {
+fn exec_RTS_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
 
@@ -1234,80 +1234,80 @@ fn exec_RTS_I(p: *proc.Processor, cy: *i32) void {
     p.sp = p.sp + 1;
 
     p.pc = @as(u16, hb) << 8 | @as(u16, lb);
-    cy.* = cy.* - 6;
+    p.addTicks( 6);
 }
 
-fn exec_SEC_I(p: *proc.Processor, cy: *i32) void {
+fn exec_SEC_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.setCarryFlag(true);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_STA_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_STA_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     p.mem.mem[adr] = p.ac;
-    cy.* = cy.* - 3;
+    p.addTicks( 3);
 }
 
-fn exec_STA_ZX(p: *proc.Processor, cy: *i32) void {
+fn exec_STA_ZX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     p.mem.mem[adr] = p.ac;
-    cy.* = cy.* - 3;
+    p.addTicks( 3);
 }
 
-fn exec_TAX_I(p: *proc.Processor, cy: *i32) void {
+fn exec_TAX_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.x = p.ac;
     p.setZeroFlag(p.ac == 0);
     p.setNegativeFlag(p.ac & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_TAY_I(p: *proc.Processor, cy: *i32) void {
+fn exec_TAY_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.y = p.ac;
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_TSX_I(p: *proc.Processor, cy: *i32) void {
+fn exec_TSX_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.x = p.sp;
     p.setZeroFlag(p.x == 0);
     p.setNegativeFlag(p.x & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_TXA_I(p: *proc.Processor, cy: *i32) void {
+fn exec_TXA_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.ac = p.x;
     p.setZeroFlag(p.ac == 0);
     p.setNegativeFlag(p.ac & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_TXS_I(p: *proc.Processor, cy: *i32) void {
+fn exec_TXS_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.sp = p.x;
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_TYA_I(p: *proc.Processor, cy: *i32) void {
+fn exec_TYA_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.ac = p.y;
     p.setZeroFlag(p.ac == 0);
     p.setNegativeFlag(p.ac & 0b10000000 != 0);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
 fn exec_LSR(p: *proc.Processor, adr: usize) void {
@@ -1329,147 +1329,139 @@ fn exec_LSR(p: *proc.Processor, adr: usize) void {
     }
 }
 
-fn exec_LSR_I(p: *proc.Processor, cy: *i32) void {
+fn exec_LSR_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     exec_LSR(p, INVALID_ADDRESS);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LSR_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_LSR_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     exec_LSR(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LSR_ZX(p: *proc.Processor, cy: *i32) void {
+fn exec_LSR_ZX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     exec_LSR(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LSR_A(p: *proc.Processor, cy: *i32) void {
+fn exec_LSR_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     exec_LSR(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_LSR_AX(p: *proc.Processor, cy: *i32) void {
+fn exec_LSR_AX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     exec_LSR(p, adr);
-    cy.* = cy.* - 2;
+    p.addTicks( 2);
 }
 
-fn exec_STA_A(p: *proc.Processor, cy: *i32) void {
+fn exec_STA_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.mem.mem[adr] = p.ac;
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_STA_AX(p: *proc.Processor, cy: *i32) void {
+fn exec_STA_AX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteXAddress(p);
     p.mem.mem[adr] = p.ac;
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_STA_AY(p: *proc.Processor, cy: *i32) void {
+fn exec_STA_AY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteYAddress(p);
     p.mem.mem[adr] = p.ac;
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_STA_IX(p: *proc.Processor, cy: *i32) void {
+fn exec_STA_IX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectXAddress(p);
     p.mem.mem[adr] = p.ac;
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_STA_IY(p: *proc.Processor, cy: *i32) void {
+fn exec_STA_IY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getIndirectYAddress(p);
     p.mem.mem[adr] = p.ac;
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_STX_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_STX_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     p.mem.mem[adr] = p.x;
-    cy.* = cy.* - 3;
+    p.addTicks( 3);
 }
 
-fn exec_STX_ZY(p: *proc.Processor, cy: *i32) void {
+fn exec_STX_ZY(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageYAddress(p);
     p.mem.mem[adr] = p.x;
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_STX_A(p: *proc.Processor, cy: *i32) void {
+fn exec_STX_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.mem.mem[adr] = p.x;
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-fn exec_STY_Z(p: *proc.Processor, cy: *i32) void {
+fn exec_STY_Z(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageAddress(p);
     p.mem.mem[adr] = p.y;
-    cy.* = cy.* - 3;
+    p.addTicks( 3);
 }
 
-fn exec_STY_ZX(p: *proc.Processor, cy: *i32) void {
+fn exec_STY_ZX(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getZeropageXAddress(p);
     p.mem.mem[adr] = p.y;
-    cy.* = cy.* - 3;
+    p.addTicks( 3);
 }
 
-fn exec_STY_A(p: *proc.Processor, cy: *i32) void {
+fn exec_STY_A(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     const adr = getAbsoluteAddress(p);
     p.mem.mem[adr] = p.y;
-    cy.* = cy.* - 4;
+    p.addTicks( 4);
 }
 
-pub fn run(p: *proc.Processor, maxCycles: i32) void {
-    var cy = maxCycles;
+pub fn run(p: *proc.Processor) void {
     while (true) {
-        if (cy <= 0) {
-            if (cy > -1024) {
-                std.log.info("too many cycles", .{});
-            }
-            return;
-        }
-
         const code = p.mem.mem[p.pc];
         const op = opTable[code];
 
-        op.exec(p, &cy);
+        op.exec(p) catch return;
     }
 }
 
@@ -1483,5 +1475,5 @@ pub fn setProgram(p: *proc.Processor, program: []const u8) void {
 
 pub fn setProgramAndRun(p: *proc.Processor, program: []const u8) void {
     setProgram(p, program);
-    run(p, 1000);
+    run(p);
 }

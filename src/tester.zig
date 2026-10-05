@@ -76,7 +76,7 @@ fn runTestFromReader(io: std.Io, allocator: std.mem.Allocator, creader: *cr.Char
             try as.asm6502File(io, allocator, p, tk2.slice());
             try p.show();
             const start = std.Io.Clock.awake.now(io);
-            ops.run(p, 10000);
+            ops.run(p);
             const end = std.Io.Clock.awake.now(io);
             const elapsed = start.durationTo(end);
             try p.show();

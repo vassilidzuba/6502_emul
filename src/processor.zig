@@ -35,6 +35,7 @@ pub const Processor = struct {
     y: u8,
     sr: u8,
     sp: u8,
+    ticks : u32,
 
     pub fn deinit(self: *Processor) void {
         self.mem.deinit();
@@ -49,6 +50,10 @@ pub const Processor = struct {
         self.sp = 0xFF;
         self.mem.reset();
 
+    }
+
+    pub inline fn addTicks(self: *Processor, nbticks : u32) void {
+        self.ticks = self.ticks + nbticks;
     }
 
     pub fn show(self: *Processor) !void {
