@@ -76,6 +76,10 @@ const Token = struct {
             // std.log.info(">>> END OF FILE", .{});
             return;
         }
+        if (self.tkt == tkt_label) {
+            // std.log.info(">>> END OF FILE", .{});
+            return;
+        }
         std.log.info(">>> unknown : {d}", .{self.tkt});
     }
 };
@@ -247,6 +251,10 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             const tk2: Token = try nextToken(creader);
 
             pos = try insertRelativeAddress(&tk2, p, pos, ops.BNE, &labelList);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BMI")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertRelativeAddress(&tk2, p, pos, ops.BMI, &labelList);
         } else {
             std.log.err("Unknown opcode: {s}", .{tk.buf[0..tk.pos]});
             return AsmErrors.unknownOpcode;
@@ -570,7 +578,6 @@ pub fn getDigit(ch: u8) !u8 {
 }
 
 fn defineLabel(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label: []const u8, pc: u16) !void {
-    std.log.info("defineLabel {s} - {X}", .{ label, pc });
 
     if (getLabel(list, label)) |ls| {
         ls.addr = pc;
@@ -588,8 +595,6 @@ fn defineLabel(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label:
 }
 
 fn defineLabelReference(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label: []const u8, addr: u16, relative: bool) !void {
-    std.log.info("defineLabelReference {s} - {X}", .{ label, addr });
-
     if (getLabel(list, label)) |ls| {
         const ref : Reference = .{.addr = addr, .relative = relative};
         try ls.references.append(allocator, ref);
@@ -610,13 +615,11 @@ fn defineLabelReference(allocator: std.mem.Allocator, list: *std.ArrayList(Label
 }
 
 fn getLabel(labelList: *std.ArrayList(Label), label: []const u8) !*Label {
-    std.log.info("getLabel : {s}", .{label});
     for (0..labelList.items.len) |ii| {
         if (std.mem.eql(u8, labelList.items[ii].slice(), label)) {
             return &labelList.items[ii];
         }
     }
-    std.log.info("not bloody found", .{});
     return LabelError.notFound;
 }
 
@@ -638,17 +641,12 @@ fn updateReferences(p: *proc.Processor, list: *std.ArrayList(Label)) !void {
     for (list.items) |l| {
         for (l.references.items) |ref| {
             if (ref.relative) {
-                std.log.info("updateReferences : relative not implemented yet", .{});
-                std.log.info("ref.addr {X}", .{ref.addr});
-                std.log.info("l.addr {X}", .{l.addr});
                 var rel: i8 = undefined;
                 if (l.addr > ref.addr) {
                     rel = @intCast(l.addr - ref.addr);
                     std.log.info("rel {X}", .{l.addr - ref.addr});
                 } else {
-                    std.log.info("zozo", .{});
                     rel = @intCast(ref.addr - l.addr);
-                    std.log.info("rel {d}", .{rel});
                     rel = - rel;
                 }
                 p.mem.mem[ref.addr] = @bitCast(rel);

@@ -63,13 +63,24 @@ fn runTestFromReader(io: std.Io, allocator: std.mem.Allocator, creader: *cr.Char
             enabled = true;
         } else if (std.mem.eql(u8, tk.slice(), "disable")) {
             enabled = false;
+        } else if (std.mem.eql(u8, tk.slice(), "log")) {
+            const tk2: Token = try nextToken(creader);
+            if (std.mem.eql(u8, tk2.slice(), "on")) {
+                ops.logEnabled = true;
+            } else {
+                ops.logEnabled = false;
+            }
         } else if (std.mem.eql(u8, tk.slice(), "run") and enabled) {
             const tk2: Token = try nextToken(creader);
             p.reset();
             try as.asm6502File(io, allocator, p, tk2.slice());
             try p.show();
+            const start = std.Io.Clock.awake.now(io);
             ops.run(p, 10000);
+            const end = std.Io.Clock.awake.now(io);
+            const elapsed = start.durationTo(end);
             try p.show();
+            std.log.info("Time elapsed: {d} ms", .{elapsed.toMilliseconds()});
         } else if (std.mem.eql(u8, tk.slice(), "assert") and enabled) {
             const tk2: Token = try nextToken(creader);
             const addr = tk2.slice();

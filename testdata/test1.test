@@ -156,8 +156,13 @@ assert A $21
 assert @01FF $CD
 assert @01FE $03
 
-enable
 run testdata/RTS.6502
 assert X $10
 assert Y $20
 assert SP $FF
+
+log off
+enable
+run testdata/BMI.6502
+assert @0010 $00
+assert @0011 $80

@@ -1,0 +1,8 @@
+; test BMI
+
+LDA #$80
+BMI next
+STA $10
+
+next:
+STA $11

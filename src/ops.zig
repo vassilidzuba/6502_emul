@@ -35,6 +35,8 @@ pub const BCS = 0xB0;
 
 pub const BEQ = 0xB0;
 
+pub const BMI = 0x30;
+
 pub const BNE = 0xD0;
 
 pub const CLC = 0x18;
@@ -172,6 +174,8 @@ pub fn initOpTable() void {
     addOpTable(BEQ, exec_BEQ_I, "BEQ_R");
 
     addOpTable(BNE, exec_BNE_I, "BNE_R");
+
+    addOpTable(BMI, exec_BMI_I, "BMI_R");
 
     addOpTable(CLC, exec_CLC_I, "CLC");
 
@@ -342,49 +346,54 @@ fn getIndirectYAddress(p: *proc.Processor) usize {
     return adr;
 }
 
+pub var logEnabled = true;
+
+
 fn logOp(p: *proc.Processor) void {
-    const opcode = p.mem.mem[p.pc];
-    const label = opTable[opcode].label;
-    var buf: [12]u8 = undefined;
+    if (logEnabled) {
+        const opcode = p.mem.mem[p.pc];
+        const label = opTable[opcode].label;
+        var buf: [12]u8 = undefined;
 
-    var arg: []u8 = undefined;
+        var arg: []u8 = undefined;
 
-    if (label.len == 3) {
-        arg = "";
-    } else if (label.len == 5 and label[4] == 'I') {
-        arg = std.fmt.bufPrint(&buf, "#${X:0>2}", .{p.mem.mem[p.pc + 1]}) catch "";
-    } else if (label.len == 5 and label[4] == 'Z') {
-        arg = std.fmt.bufPrint(&buf, "${X:0>2}", .{p.mem.mem[p.pc + 1]}) catch "";
-    } else if (label.len == 5 and label[4] == 'R') {
-        arg = std.fmt.bufPrint(&buf, "${X:0>2}", .{p.mem.mem[p.pc + 1]}) catch "";
-    } else if (label.len == 6 and label[4] == 'Z' and label[5] == 'X') {
-        arg = std.fmt.bufPrint(&buf, "${X:0>2},X", .{p.mem.mem[p.pc + 1]}) catch "";
-    } else if (label.len == 6 and label[4] == 'Z' and label[5] == 'Y') {
-        arg = std.fmt.bufPrint(&buf, "${X:0>2},Y", .{p.mem.mem[p.pc + 1]}) catch "";
-    } else if (label.len == 6 and label[4] == 'I' and label[5] == 'X') {
-        arg = std.fmt.bufPrint(&buf, "(${X:0>2},X)", .{p.mem.mem[p.pc + 1]}) catch "";
-    } else if (label.len == 6 and label[4] == 'I' and label[5] == 'Y') {
-        arg = std.fmt.bufPrint(&buf, "(${X:0>2}),Y", .{p.mem.mem[p.pc + 1]}) catch "";
-    } else if (label.len == 5 and label[4] == 'A') {
-        const val1 : u16 = @intCast(p.mem.mem[p.pc + 1]);
-        const val2 : u16 = @intCast(p.mem.mem[p.pc + 2]);
-        const val = val1 + val2 * 256;
-        arg = std.fmt.bufPrint(&buf, "${X:0>4}", .{val}) catch "";
-    } else if (label.len == 6 and label[4] == 'A' and label[5] == 'X') {
-        const val1 : u16 = @intCast(p.mem.mem[p.pc + 1]);
-        const val2 : u16 = @intCast(p.mem.mem[p.pc + 2]);
-        const val = val1 + val2 * 256;
-        arg = std.fmt.bufPrint(&buf, "${X:0>4},X", .{val}) catch "";
-    } else if (label.len == 6 and label[4] == 'A' and label[5] == 'Y') {
-        const val1 : u16 = @intCast(p.mem.mem[p.pc + 1]);
-        const val2 : u16 = @intCast(p.mem.mem[p.pc + 2]);
-        const val = val1 + val2 * 256;
-        arg = std.fmt.bufPrint(&buf, "${X:0>4},Y", .{val}) catch "";
-    } else {
-        arg = std.fmt.bufPrint(&buf, "???", .{}) catch "";
+        if (label.len == 3) {
+            arg = "";
+        } else if (label.len == 5 and label[4] == 'I') {
+            arg = std.fmt.bufPrint(&buf, "#${X:0>2}", .{p.mem.mem[p.pc + 1]}) catch "";
+        } else if (label.len == 5 and label[4] == 'Z') {
+            arg = std.fmt.bufPrint(&buf, "${X:0>2}", .{p.mem.mem[p.pc + 1]}) catch "";
+        } else if (label.len == 5 and label[4] == 'R') {
+            arg = std.fmt.bufPrint(&buf, "${X:0>2}", .{p.mem.mem[p.pc + 1]}) catch "";
+        } else if (label.len == 6 and label[4] == 'Z' and label[5] == 'X') {
+            arg = std.fmt.bufPrint(&buf, "${X:0>2},X", .{p.mem.mem[p.pc + 1]}) catch "";
+        } else if (label.len == 6 and label[4] == 'Z' and label[5] == 'Y') {
+            arg = std.fmt.bufPrint(&buf, "${X:0>2},Y", .{p.mem.mem[p.pc + 1]}) catch "";
+        } else if (label.len == 6 and label[4] == 'I' and label[5] == 'X') {
+            arg = std.fmt.bufPrint(&buf, "(${X:0>2},X)", .{p.mem.mem[p.pc + 1]}) catch "";
+        } else if (label.len == 6 and label[4] == 'I' and label[5] == 'Y') {
+            arg = std.fmt.bufPrint(&buf, "(${X:0>2}),Y", .{p.mem.mem[p.pc + 1]}) catch "";
+        } else if (label.len == 5 and label[4] == 'A') {
+            const val1: u16 = @intCast(p.mem.mem[p.pc + 1]);
+            const val2: u16 = @intCast(p.mem.mem[p.pc + 2]);
+            const val = val1 + val2 * 256;
+            arg = std.fmt.bufPrint(&buf, "${X:0>4}", .{val}) catch "";
+        } else if (label.len == 6 and label[4] == 'A' and label[5] == 'X') {
+            const val1: u16 = @intCast(p.mem.mem[p.pc + 1]);
+            const val2: u16 = @intCast(p.mem.mem[p.pc + 2]);
+            const val = val1 + val2 * 256;
+            arg = std.fmt.bufPrint(&buf, "${X:0>4},X", .{val}) catch "";
+        } else if (label.len == 6 and label[4] == 'A' and label[5] == 'Y') {
+            const val1: u16 = @intCast(p.mem.mem[p.pc + 1]);
+            const val2: u16 = @intCast(p.mem.mem[p.pc + 2]);
+            const val = val1 + val2 * 256;
+            arg = std.fmt.bufPrint(&buf, "${X:0>4},Y", .{val}) catch "";
+        } else {
+            arg = std.fmt.bufPrint(&buf, "???", .{}) catch "";
+        }
+
+        std.log.info("{X} running {s} {s}", .{ p.pc, label[0..3], arg });
     }
-
-    std.log.info("{X} running {s} {s}", .{ p.pc, label[0..3], arg });
 }
 
 fn exec_ILLEG(p: *proc.Processor, cy: *i32) void {
@@ -632,7 +641,7 @@ fn jumpRelative(p: *proc.Processor) void {
 fn exec_BCC_I(p: *proc.Processor, cy: *i32) void {
     logOp(p);
     p.pc = p.pc + 1;
-    if (! p.getCarryFlag()) {
+    if (!p.getCarryFlag()) {
         jumpRelative(p);
     } else {
         p.pc = p.pc + 1;
@@ -669,7 +678,19 @@ fn exec_BEQ_I(p: *proc.Processor, cy: *i32) void {
 fn exec_BNE_I(p: *proc.Processor, cy: *i32) void {
     logOp(p);
     p.pc = p.pc + 1;
-    if (! p.getZeroFlag()) {
+    if (!p.getZeroFlag()) {
+        jumpRelative(p);
+    } else {
+        p.pc = p.pc + 1;
+    }
+
+    cy.* = cy.* - 2;
+}
+
+fn exec_BMI_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    if (p.getNegativeFlag()) {
         jumpRelative(p);
     } else {
         p.pc = p.pc + 1;
@@ -836,12 +857,12 @@ fn exec_JMP_A(p: *proc.Processor, cy: *i32) void {
 fn exec_JSR_A(p: *proc.Processor, cy: *i32) void {
     logOp(p);
     p.pc = p.pc + 1;
-    if (p.sp <= 1)  {
+    if (p.sp <= 1) {
         std.log.info("stack overflow", .{});
     }
     const adr = getAbsoluteAddress(p);
 
-    const spadr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    const spadr: u16 = 0x0100 + @as(u16, @intCast(p.sp));
     p.mem.mem[spadr] = @intCast(p.pc >> 8);
     p.sp = p.sp - 1;
     p.mem.mem[spadr - 1] = @intCast(p.pc & 0x00FF);
@@ -1058,9 +1079,9 @@ fn exec_NOP_I(p: *proc.Processor, cy: *i32) void {
 fn exec_PHA_I(p: *proc.Processor, cy: *i32) void {
     logOp(p);
     p.pc = p.pc + 1;
-    const adr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    const adr: u16 = 0x0100 + @as(u16, @intCast(p.sp));
     p.mem.mem[adr] = p.ac;
-    if (p.sp == 0)  {
+    if (p.sp == 0) {
         std.log.info("stack overflow", .{});
     }
     p.sp = p.sp - 1;
@@ -1070,9 +1091,9 @@ fn exec_PHA_I(p: *proc.Processor, cy: *i32) void {
 fn exec_PHP_I(p: *proc.Processor, cy: *i32) void {
     logOp(p);
     p.pc = p.pc + 1;
-    const adr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    const adr: u16 = 0x0100 + @as(u16, @intCast(p.sp));
     p.mem.mem[adr] = p.sr | proc.FLAG_BREAK;
-    if (p.sp == 0x00)  {
+    if (p.sp == 0x00) {
         std.log.info("stack overflow", .{});
     }
     p.sp = p.sp - 1;
@@ -1082,11 +1103,11 @@ fn exec_PHP_I(p: *proc.Processor, cy: *i32) void {
 fn exec_PLA_I(p: *proc.Processor, cy: *i32) void {
     logOp(p);
     p.pc = p.pc + 1;
-    if (p.sp == 0xFF)  {
+    if (p.sp == 0xFF) {
         std.log.info("stack underflow", .{});
     }
     p.sp = p.sp + 1;
-    const adr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    const adr: u16 = 0x0100 + @as(u16, @intCast(p.sp));
     p.ac = p.mem.mem[adr];
     p.setZeroFlag(p.ac == 0);
     p.setNegativeFlag(p.ac & 0b10000000 != 0);
@@ -1096,11 +1117,11 @@ fn exec_PLA_I(p: *proc.Processor, cy: *i32) void {
 fn exec_PLP_I(p: *proc.Processor, cy: *i32) void {
     logOp(p);
     p.pc = p.pc + 1;
-    if (p.sp == 0xFF)  {
+    if (p.sp == 0xFF) {
         std.log.info("stack underflow", .{});
     }
     p.sp = p.sp + 1;
-    const adr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    const adr: u16 = 0x0100 + @as(u16, @intCast(p.sp));
     const br = p.getBreakFlag();
     std.log.info("adr = {X}", .{adr});
     p.sr = p.mem.mem[adr];
@@ -1117,7 +1138,7 @@ fn exec_RTS_I(p: *proc.Processor, cy: *i32) void {
     p.pc = p.pc + 1;
 
     p.sp = p.sp + 1;
-    const adr : u16 = 0x0100 + @as(u16, @intCast(p.sp));
+    const adr: u16 = 0x0100 + @as(u16, @intCast(p.sp));
     const lb = p.mem.mem[adr];
     const hb = p.mem.mem[adr + 1];
     p.sp = p.sp + 1;
