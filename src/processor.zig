@@ -36,6 +36,7 @@ pub const Processor = struct {
     sr: u8,
     sp: u8,
     ticks : u32,
+    org: usize,
 
     pub fn deinit(self: *Processor) void {
         self.mem.deinit();
@@ -48,6 +49,7 @@ pub const Processor = struct {
         self.y = 0;
         self.sr = 0;
         self.sp = 0xFF;
+        self.org = 0xCD00;
         self.mem.reset();
 
     }

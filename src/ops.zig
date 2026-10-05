@@ -1457,6 +1457,7 @@ fn exec_STY_A(p: *proc.Processor) OpsError!void {
 }
 
 pub fn run(p: *proc.Processor) void {
+    p.pc = @intCast(p.org);
     while (true) {
         const code = p.mem.mem[p.pc];
         const op = opTable[code];
@@ -1466,7 +1467,7 @@ pub fn run(p: *proc.Processor) void {
 }
 
 pub fn setProgram(p: *proc.Processor, program: []const u8) void {
-    var pos: usize = 0xCD00;
+    var pos: usize = p.org;
     for (program) |code| {
         p.mem.mem[pos] = code;
         pos = pos + 1;

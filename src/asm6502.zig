@@ -22,6 +22,7 @@ const tkt_indirect_x: u8 = 13;
 const tkt_indirect_y: u8 = 14;
 const tkt_label: u8 = 15;
 const tkt_accumulator: u8 = 16;
+const tkt_controlcommand: u8 = 17;
 
 const AsmErrors = error{
     illegalParameter,
@@ -62,26 +63,6 @@ const Token = struct {
     fn slice(self: *const Token) []const u8 {
         return self.buf[0..self.pos];
     }
-
-    fn show(self: *const Token) void {
-        if (self.tkt == tkt_name) {
-            // std.log.info(">>> {d} - {s}", .{ self.tkt, self.buf[0..self.pos] });
-            return;
-        }
-        if (self.tkt == tkt_endofline) {
-            // std.log.info(">>> NEWLINE", .{});
-            return;
-        }
-        if (self.tkt == tkt_endoffile) {
-            // std.log.info(">>> END OF FILE", .{});
-            return;
-        }
-        if (self.tkt == tkt_label) {
-            // std.log.info(">>> END OF FILE", .{});
-            return;
-        }
-        std.log.info(">>> unknown : {d}", .{self.tkt});
-    }
 };
 
 fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
@@ -91,7 +72,8 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
 
     while (true) {
         const tk: Token = try nextToken(creader);
-        (&tk).show();
+
+        std.log.info(">>> {s}", .{tk.slice()});
 
         if (tk.tkt == tkt_endofline) {
             continue;
@@ -100,6 +82,10 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             displayLabels(&labelList);
             try updateReferences(p, &labelList);
             break;
+        }
+        if (tk.tkt == tkt_controlcommand) {
+            pos = try processControlCommand(p, &tk, pos, creader);
+            continue;
         }
 
         if (tk.tkt == tkt_label) {
@@ -518,6 +504,8 @@ fn nextToken(creader: *cr.CharReader) !Token {
         tk.tkt = tkt_indirect_y;
     } else if (pos > 1 and tk.buf[pos - 1] == ':') {
         tk.tkt = tkt_label;
+    } else if (pos > 1 and tk.buf[0] == '.') {
+        tk.tkt = tkt_controlcommand;
     } else if (pos == 1 and tk.buf[0] == 'A') {
         tk.tkt = tkt_accumulator;
     }
@@ -675,4 +663,24 @@ fn updateReferences(p: *proc.Processor, list: *std.ArrayList(Label)) !void {
             }
         }
     }
+}
+
+
+fn processControlCommand(p: *proc.Processor, tk: *const Token, pc1: usize, creader: *cr.CharReader) !usize {
+    std.log.info("bloody control command: {s}", .{tk.slice()});
+
+    if (std.mem.eql(u8, tk.buf[0..tk.pos], ".org")) {
+        const tk2: Token = try nextToken(creader);
+
+        if (tk2.tkt == tkt_absolute) {
+            const pos =  try getAbsolute(tk2.buf[0..tk2.pos]);
+            p.org = pos;
+            return pos;
+        } else {
+            std.log.info("unexpected parameter for .org : {s}", .{tk2.slice()});
+        }
+        std.log.info(".org is requested", .{});
+    }
+
+    return pc1;
 }

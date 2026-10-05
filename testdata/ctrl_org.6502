@@ -1,0 +1,6 @@
+; testing .org control command
+
+.org $F000
+
+LDA #$10
+STA $10
