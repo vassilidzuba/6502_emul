@@ -35,13 +35,22 @@ pub const BCS = 0xB0;
 
 pub const BEQ = 0xB0;
 
+pub const BIT_Z = 0x24;
+pub const BIT_A = 0x2C;
+
 pub const BMI = 0x30;
 
 pub const BNE = 0xD0;
 
 pub const BPL = 0x10;
 
+pub const BVC = 0x50;
+
+pub const BVS = 0x70;
+
 pub const CLC = 0x18;
+
+pub const CLV = 0xB8;
 
 pub const DEC_Z = 0xC6;
 pub const DEC_ZX = 0xD6;
@@ -175,13 +184,22 @@ pub fn initOpTable() void {
 
     addOpTable(BEQ, exec_BEQ_I, "BEQ_R");
 
+    addOpTable(BIT_Z, exec_BIT_Z, "BIT_Z");
+    addOpTable(BIT_A, exec_BIT_A, "BIT_A");
+
     addOpTable(BNE, exec_BNE_I, "BNE_R");
 
     addOpTable(BPL, exec_BPL_I, "BPL_R");
 
     addOpTable(BMI, exec_BMI_I, "BMI_R");
 
+    addOpTable(BVC, exec_BVC_I, "BVC_R");
+
+    addOpTable(BVS, exec_BVS_I, "BVS_R");
+
     addOpTable(CLC, exec_CLC_I, "CLC");
+
+    addOpTable(CLV, exec_CLV_I, "CLV");
 
     addOpTable(DEC_Z, exec_DEC_Z, "DEC_Z");
     addOpTable(DEC_ZX, exec_DEC_ZX, "DEC_ZX");
@@ -668,13 +686,38 @@ fn exec_BCS_I(p: *proc.Processor, cy: *i32) void {
 
 fn exec_BEQ_I(p: *proc.Processor, cy: *i32) void {
     logOp(p);
-    std.log.info("{X} running BEQ_I, (cycle {d})", .{ p.pc, cy.* });
     p.pc = p.pc + 1;
     if (p.getZeroFlag()) {
         jumpRelative(p);
     } else {
         p.pc = p.pc + 1;
     }
+
+    cy.* = cy.* - 2;
+}
+
+fn exec_BIT_Z(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const addr = getZeropageAddress(p);
+    const val = p.mem.mem[addr];
+
+    std.log.info("val = {X}", .{val});
+
+    p.setZeroFlag((val & p.ac) == 0);
+    p.sr = p.sr | (val & 0b11000000);
+
+    cy.* = cy.* - 2;
+}
+
+fn exec_BIT_A(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const addr = getAbsoluteAddress(p);
+    const val = p.mem.mem[addr];
+
+    p.setZeroFlag((val & p.ac) == 0);
+    p.sr = p.sr | (val & 0b11000000);
 
     cy.* = cy.* - 2;
 }
@@ -715,10 +758,41 @@ fn exec_BMI_I(p: *proc.Processor, cy: *i32) void {
     cy.* = cy.* - 2;
 }
 
+fn exec_BVC_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    if (! p.getOverflowFlag()) {
+        jumpRelative(p);
+    } else {
+        p.pc = p.pc + 1;
+    }
+
+    cy.* = cy.* - 2;
+}
+
+
+fn exec_BVS_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    if (p.getOverflowFlag()) {
+        jumpRelative(p);
+    } else {
+        p.pc = p.pc + 1;
+    }
+
+    cy.* = cy.* - 2;
+}
 fn exec_CLC_I(p: *proc.Processor, cy: *i32) void {
     logOp(p);
     p.pc = p.pc + 1;
     p.setCarryFlag(false);
+    cy.* = cy.* - 2;
+}
+
+fn exec_CLV_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    p.setOverflowFlag(false);
     cy.* = cy.* - 2;
 }
 

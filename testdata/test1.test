@@ -165,8 +165,27 @@ run testdata/BMI.6502
 assert @0010 $00
 assert @0011 $80
 
-log on
-enable
 run testdata/BPL.6502
 assert @0010 $11
 assert @0011 $00
+
+run testdata/BIT.6502
+assert @0020 $10
+assert @0021 $12
+assert @0022 %11010010
+assert @2000 $10
+assert @2001 $12
+assert @2002 %11010010
+
+run testdata/CLV.6502
+assert @0010 $10
+
+run testdata/BVC.6502
+assert @0010 $10
+assert @0011 $00
+
+log on
+enable
+run testdata/BVS.6502
+assert @0010 $00
+assert @0011 $11

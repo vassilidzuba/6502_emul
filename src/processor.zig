@@ -145,13 +145,20 @@ pub const Processor = struct {
         setFlag(self, FLAG_BREAK, val);
     }
 
-
     pub inline fn getIgnoredFlag(self: *Processor) bool {
         return getFlag(self, FLAG_IGNORED);
     }
 
     pub inline fn setIgnoredFlag(self: *Processor, val: bool) void {
         setFlag(self, FLAG_IGNORED, val);
+    }
+
+    pub inline fn getOverflowFlag(self: *Processor) bool {
+        return getFlag(self, FLAG_OVERFLOW);
+    }
+
+    pub inline fn setOverflowFlag(self: *Processor, val: bool) void {
+        setFlag(self, FLAG_OVERFLOW, val);
     }
 };
 

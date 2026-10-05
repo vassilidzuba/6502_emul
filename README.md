@@ -17,10 +17,14 @@ Currently, the following opcodes are implemented and their tests are available:
     BCC
     BCS
     BEQ
+    BIT
     BMI
     BNE
     BPL
+    BVC
+    BVS
     CLC
+    CLV
     DEC
     DEX
     DEY

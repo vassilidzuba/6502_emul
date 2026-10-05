@@ -1,0 +1,12 @@
+; test CLV
+
+LDA #%01000000
+PHA
+PLP
+CLV
+BVS end
+LDA #$10
+STA $10
+
+end:
+NOP

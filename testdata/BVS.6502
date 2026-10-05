@@ -1,0 +1,19 @@
+; test BVS
+
+LDA #%01000000
+PHA
+PLP
+BVS next
+LDA #$10
+STA $10
+
+next:
+LDA #%00000000
+PHA
+PLP
+BVS end
+LDA #$11
+STA $11
+
+end:
+NOP

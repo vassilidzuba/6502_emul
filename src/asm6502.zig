@@ -201,6 +201,8 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertImplied(p, pos, ops.INY_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLC")) {
             pos = try insertImplied(p, pos, ops.CLC);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLV")) {
+            pos = try insertImplied(p, pos, ops.CLV);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "SEC")) {
             pos = try insertImplied(p, pos, ops.SEC);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "NOP")) {
@@ -259,6 +261,19 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             const tk2: Token = try nextToken(creader);
 
             pos = try insertRelativeAddress(&tk2, p, pos, ops.BPL, &labelList);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BVC")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertRelativeAddress(&tk2, p, pos, ops.BVC, &labelList);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BVS")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertRelativeAddress(&tk2, p, pos, ops.BVS, &labelList);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BIT")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertZeropage(&tk2, p, pos, ops.BIT_Z);
+            pos = try insertAbsolute(&tk2, p, pos, ops.BIT_A);
         } else {
             std.log.err("Unknown opcode: {s}", .{tk.buf[0..tk.pos]});
             return AsmErrors.unknownOpcode;
