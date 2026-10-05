@@ -4,55 +4,65 @@
 const std = @import("std");
 
 pub const Memory = struct {
-  allocator: std.mem.Allocator,
-  mem: [] u8,
-  memsize: u16,
+    allocator: std.mem.Allocator,
+    mem: []u8,
+    memsize: u16,
 
-  pub fn deinit(self: *Memory) void {
-      self.allocator.free(self.mem);
-  }
+    pub fn deinit(self: *Memory) void {
+        self.allocator.free(self.mem);
+    }
 
-  pub fn show(self: *Memory) !void {
-      std.log.info("memory:", .{});
+    pub fn show(self: *Memory) !void {
+        std.log.info("memory:", .{});
 
-      var line: usize = 0;
-      while (true) {
-          if (line >= self.mem.len / 16) {
-              break;
-          }
+        var line: usize = 0;
+        while (true) {
+            if (line >= self.mem.len / 16) {
+                break;
+            }
 
-          if (self.notEmpty(line)) {
-              var buffer: [1024]u8 = undefined;
-              // std.log.info("    {X:0>4}", .{line * 16});
-              const buf = try std.fmt.bufPrint(&buffer, "    {X:0>4}", .{line * 16});
-              var pos = buf.len;
+            if (self.notEmpty(line)) {
+                var buffer: [1024]u8 = undefined;
+                // std.log.info("    {X:0>4}", .{line * 16});
+                const buf = try std.fmt.bufPrint(&buffer, "    {X:0>4}", .{line * 16});
+                var pos = buf.len;
 
-              for (0..16) |ii| {
-                  const buf2 = try std.fmt.bufPrint(buffer[pos..], " {X:0>2}", .{self.mem[line * 16 + ii]});
-                  pos = pos + buf2.len;
-              }
+                for (0..16) |ii| {
+                    const buf2 = try std.fmt.bufPrint(buffer[pos..], " {X:0>2}", .{self.mem[line * 16 + ii]});
+                    pos = pos + buf2.len;
+                }
 
-              std.log.info("    {s}", .{buffer[0..pos]});
-          }
+                const buf3 = try std.fmt.bufPrint(buffer[pos..], "    ", .{});
+                pos = pos + buf3.len;
 
-          line  = line + 1;
-      }
-  }
+                for (0..16) |ii| {
+                    var ch = self.mem[line * 16 + ii];
+                    if (!std.ascii.isPrint(ch)) {
+                        ch = '.';
+                    }
+                    const buf2 = try std.fmt.bufPrint(buffer[pos..], "{c}", .{ch});
+                    pos = pos + buf2.len;
+                }
 
-  fn notEmpty(self: *Memory, line: usize) bool {
-      for (0..16) |ii| {
-          if (self.mem[line * 16 + ii] != 0) {
-              return true;
-          }
-      }
-      return false;
-  }
+                std.log.info("    {s}", .{buffer[0..pos]});
+            }
 
+            line = line + 1;
+        }
+    }
 
-  pub fn reset(self: *Memory) void {
-      @memset(self.mem, 0);
-  }
+    fn notEmpty(self: *Memory, line: usize) bool {
+        for (0..16) |ii| {
+            if (self.mem[line * 16 + ii] != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
 
+    pub fn reset(self: *Memory) void {
+        @memset(self.mem, 0);
+    }
 };
 
 pub fn initMemory(allocator: std.mem.Allocator, memsize: u16) !Memory {
