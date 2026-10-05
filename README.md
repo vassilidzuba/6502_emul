@@ -19,6 +19,7 @@ Currently, the following opcodes are implemented and their tests are available:
     BEQ
     BMI
     BNE
+    BPL
     CLC
     DEC
     DEX

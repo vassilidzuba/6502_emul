@@ -1,0 +1,15 @@
+; test BPL
+
+LDA #$80
+BPL next1
+LDA #$11
+STA $10
+
+next1:
+LDA #$40
+BPL end
+LDA #$12
+STA $11
+
+end:
+NOP

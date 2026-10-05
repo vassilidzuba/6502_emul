@@ -161,8 +161,12 @@ assert X $10
 assert Y $20
 assert SP $FF
 
-log off
-enable
 run testdata/BMI.6502
 assert @0010 $00
 assert @0011 $80
+
+log on
+enable
+run testdata/BPL.6502
+assert @0010 $11
+assert @0011 $00

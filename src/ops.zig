@@ -39,6 +39,8 @@ pub const BMI = 0x30;
 
 pub const BNE = 0xD0;
 
+pub const BPL = 0x10;
+
 pub const CLC = 0x18;
 
 pub const DEC_Z = 0xC6;
@@ -174,6 +176,8 @@ pub fn initOpTable() void {
     addOpTable(BEQ, exec_BEQ_I, "BEQ_R");
 
     addOpTable(BNE, exec_BNE_I, "BNE_R");
+
+    addOpTable(BPL, exec_BPL_I, "BPL_R");
 
     addOpTable(BMI, exec_BMI_I, "BMI_R");
 
@@ -679,6 +683,18 @@ fn exec_BNE_I(p: *proc.Processor, cy: *i32) void {
     logOp(p);
     p.pc = p.pc + 1;
     if (!p.getZeroFlag()) {
+        jumpRelative(p);
+    } else {
+        p.pc = p.pc + 1;
+    }
+
+    cy.* = cy.* - 2;
+}
+
+fn exec_BPL_I(p: *proc.Processor, cy: *i32) void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    if (!p.getNegativeFlag()) {
         jumpRelative(p);
     } else {
         p.pc = p.pc + 1;

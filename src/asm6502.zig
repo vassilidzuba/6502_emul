@@ -255,6 +255,10 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             const tk2: Token = try nextToken(creader);
 
             pos = try insertRelativeAddress(&tk2, p, pos, ops.BMI, &labelList);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "BPL")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertRelativeAddress(&tk2, p, pos, ops.BPL, &labelList);
         } else {
             std.log.err("Unknown opcode: {s}", .{tk.buf[0..tk.pos]});
             return AsmErrors.unknownOpcode;
