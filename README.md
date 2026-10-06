@@ -24,6 +24,7 @@ Currently, the following opcodes are implemented and their tests are available:
     BVC
     BVS
     CLC
+    CLD
     CLV
     DEC
     DEX
@@ -42,6 +43,7 @@ Currently, the following opcodes are implemented and their tests are available:
     PLP
     RTS
     SEC
+    SED
     STA
     TAX
     TAY

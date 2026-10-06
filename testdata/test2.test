@@ -1,2 +1,5 @@
-
+disable
 run testdata/ctrl_org.6502
+
+enable
+run testdata/ctrl_asciiz.6502

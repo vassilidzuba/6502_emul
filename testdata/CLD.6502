@@ -1,0 +1,11 @@
+; test CLD
+
+SED
+PHP
+PLA
+STA $10
+
+CLD
+PHP
+PLA
+STA $11

@@ -184,8 +184,15 @@ run testdata/BVC.6502
 assert @0010 $10
 assert @0011 $00
 
-log on
-enable
 run testdata/BVS.6502
 assert @0010 $00
 assert @0011 $11
+
+run testdata/CLD.6502
+assert @0010 $18
+assert @0011 $10
+
+log on
+enable
+run testdata/SED.6502
+assert @0010 $18

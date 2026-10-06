@@ -1,0 +1,9 @@
+; test .asciiz
+
+LDA #$20
+STA $10
+
+hello:
+.asciiz "Hello World !"
+ends:
+.asciiz "That's All Folks"

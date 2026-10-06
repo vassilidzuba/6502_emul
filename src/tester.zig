@@ -81,6 +81,7 @@ fn runTestFromReader(io: std.Io, allocator: std.mem.Allocator, creader: *cr.Char
             const elapsed = start.durationTo(end);
             try p.show();
             std.log.info("Time elapsed: {d} ms", .{elapsed.toMilliseconds()});
+            std.log.info("Number of ticks: {d}", .{p.ticks});
         } else if (std.mem.eql(u8, tk.slice(), "assert") and enabled) {
             const tk2: Token = try nextToken(creader);
             const addr = tk2.slice();

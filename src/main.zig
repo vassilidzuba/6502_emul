@@ -24,7 +24,7 @@ pub fn main(init: std.process.Init) !void {
 
     ops.initOpTable();
 
-    try tester.runTest(init.io, arena, "testdata/test2.test");
+    try tester.runTest(init.io, arena, "testdata/test1.test");
 }
 
 

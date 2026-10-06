@@ -23,6 +23,7 @@ const tkt_indirect_y: u8 = 14;
 const tkt_label: u8 = 15;
 const tkt_accumulator: u8 = 16;
 const tkt_controlcommand: u8 = 17;
+const tkt_string: u8 = 18;
 
 const AsmErrors = error{
     illegalParameter,
@@ -89,7 +90,7 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
         }
 
         if (tk.tkt == tkt_label) {
-            try defineLabel(p.allocator, &labelList, tk.buf[0..tk.pos - 1], @intCast(pos));
+            try defineLabel(p.allocator, &labelList, tk.buf[0 .. tk.pos - 1], @intCast(pos));
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "LDA")) {
             const tk2: Token = try nextToken(creader);
 
@@ -187,10 +188,14 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertImplied(p, pos, ops.INY_I);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLC")) {
             pos = try insertImplied(p, pos, ops.CLC);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLD")) {
+            pos = try insertImplied(p, pos, ops.CLD);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLV")) {
             pos = try insertImplied(p, pos, ops.CLV);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "SEC")) {
             pos = try insertImplied(p, pos, ops.SEC);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "SED")) {
+            pos = try insertImplied(p, pos, ops.SED);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "NOP")) {
             pos = try insertImplied(p, pos, ops.NOP);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "PHA")) {
@@ -466,18 +471,34 @@ fn nextToken(creader: *cr.CharReader) !Token {
         break;
     }
 
-    while (true) {
-        ch = creader.peekByte();
-        if (ch == ' ' or ch == '\n' or ch == 0 or ch == ';') {
-            break;
-        }
+    var tk: Token = undefined;
+
+    if (ch == '"') {
+        tk.tkt = tkt_string;
         ch = creader.readByte();
-        buf[pos] = ch;
-        pos = pos + 1;
+        while (true) {
+            ch = creader.peekByte();
+            if (ch == '"' or ch == '\n') {
+                ch = creader.readByte();
+                break;
+            }
+            ch = creader.readByte();
+            buf[pos] = ch;
+            pos = pos + 1;
+        }
+    } else {
+        tk.tkt = tkt_name;
+        while (true) {
+            ch = creader.peekByte();
+            if (ch == ' ' or ch == '\n' or ch == 0 or ch == ';') {
+                break;
+            }
+            ch = creader.readByte();
+            buf[pos] = ch;
+            pos = pos + 1;
+        }
     }
 
-    var tk: Token = undefined;
-    tk.tkt = tkt_name;
     for (0..pos) |i| {
         tk.buf[i] = buf[i];
     }
@@ -585,7 +606,6 @@ pub fn getDigit(ch: u8) !u8 {
 }
 
 fn defineLabel(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label: []const u8, pc: u16) !void {
-
     if (getLabel(list, label)) |ls| {
         ls.addr = pc;
     } else |_| {
@@ -603,7 +623,7 @@ fn defineLabel(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label:
 
 fn defineLabelReference(allocator: std.mem.Allocator, list: *std.ArrayList(Label), label: []const u8, addr: u16, relative: bool) !void {
     if (getLabel(list, label)) |ls| {
-        const ref : Reference = .{.addr = addr, .relative = relative};
+        const ref: Reference = .{ .addr = addr, .relative = relative };
         try ls.references.append(allocator, ref);
     } else |_| {
         var ls: Label = undefined;
@@ -614,7 +634,7 @@ fn defineLabelReference(allocator: std.mem.Allocator, list: *std.ArrayList(Label
         }
 
         ls.references = .empty;
-        const ref : Reference = .{.addr = addr, .relative = relative};
+        const ref: Reference = .{ .addr = addr, .relative = relative };
         try ls.references.append(allocator, ref);
 
         try list.append(allocator, ls);
@@ -639,7 +659,7 @@ fn displayLabels(list: *std.ArrayList(Label)) void {
             if (x.relative) {
                 rel = "true ";
             }
-            std.log.info("      {X}  relative={s}", .{x.addr, rel});
+            std.log.info("      {X}  relative={s}", .{ x.addr, rel });
         }
     }
 }
@@ -654,7 +674,7 @@ fn updateReferences(p: *proc.Processor, list: *std.ArrayList(Label)) !void {
                     std.log.info("rel {X}", .{l.addr - ref.addr});
                 } else {
                     rel = @intCast(ref.addr - l.addr);
-                    rel = - rel;
+                    rel = -rel;
                 }
                 p.mem.mem[ref.addr] = @bitCast(rel);
             } else {
@@ -665,7 +685,6 @@ fn updateReferences(p: *proc.Processor, list: *std.ArrayList(Label)) !void {
     }
 }
 
-
 fn processControlCommand(p: *proc.Processor, tk: *const Token, pc1: usize, creader: *cr.CharReader) !usize {
     std.log.info("bloody control command: {s}", .{tk.slice()});
 
@@ -673,13 +692,26 @@ fn processControlCommand(p: *proc.Processor, tk: *const Token, pc1: usize, cread
         const tk2: Token = try nextToken(creader);
 
         if (tk2.tkt == tkt_absolute) {
-            const pos =  try getAbsolute(tk2.buf[0..tk2.pos]);
+            const pos = try getAbsolute(tk2.buf[0..tk2.pos]);
             p.org = pos;
             return pos;
         } else {
             std.log.info("unexpected parameter for .org : {s}", .{tk2.slice()});
         }
         std.log.info(".org is requested", .{});
+    } else if (std.mem.eql(u8, tk.buf[0..tk.pos], ".asciiz")) {
+        const tk2: Token = try nextToken(creader);
+
+        if (tk2.tkt == tkt_string) {
+            var pos = pc1;
+            for (0..tk2.pos) |ii| {
+                p.mem.mem[pos + ii] = tk2.buf[ii];
+            }
+            pos = pos + tk2.pos + 1;
+            return pos;
+        } else {
+            std.log.info("expected string parameter for .asciiz : {d} - {s}", .{ tk2.tkt, tk2.slice() });
+        }
     }
 
     return pc1;

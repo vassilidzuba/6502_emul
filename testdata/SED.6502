@@ -1,0 +1,6 @@
+; test SED
+
+SED
+PHP
+PLA
+STA $10

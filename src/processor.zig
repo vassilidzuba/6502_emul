@@ -49,6 +49,7 @@ pub const Processor = struct {
         self.y = 0;
         self.sr = 0;
         self.sp = 0xFF;
+        self.ticks = 0;
         self.org = 0xCD00;
         self.mem.reset();
 
@@ -166,6 +167,14 @@ pub const Processor = struct {
 
     pub inline fn setOverflowFlag(self: *Processor, val: bool) void {
         setFlag(self, FLAG_OVERFLOW, val);
+    }
+
+    pub inline fn getDecimalFlag(self: *Processor) bool {
+        return getFlag(self, FLAG_DECIMAL);
+    }
+
+    pub inline fn setDecimalFlag(self: *Processor, val: bool) void {
+        setFlag(self, FLAG_DECIMAL, val);
     }
 };
 
