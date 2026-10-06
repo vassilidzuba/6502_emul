@@ -1,0 +1,6 @@
+; test SEI
+
+SEI
+PHP
+PLA
+STA $10

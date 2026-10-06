@@ -1,0 +1,11 @@
+; test CLI
+
+SEI
+PHP
+PLA
+STA $10
+
+CLI
+PHP
+PLA
+STA $11

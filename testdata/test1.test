@@ -1,3 +1,5 @@
+log on
+
 disable
 run testdata/LDA.6502
 assert @1000 $01
@@ -192,7 +194,13 @@ run testdata/CLD.6502
 assert @0010 $18
 assert @0011 $10
 
-log on
-enable
 run testdata/SED.6502
 assert @0010 $18
+
+run testdata/CLI.6502
+assert @0010 $14
+assert @0011 $10
+
+enable
+run testdata/SEI.6502
+assert @0010 $14

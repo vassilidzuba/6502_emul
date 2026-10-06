@@ -74,7 +74,7 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
     while (true) {
         const tk: Token = try nextToken(creader);
 
-        std.log.info(">>> {s}", .{tk.slice()});
+        // std.log.info(">>> {s}", .{tk.slice()});
 
         if (tk.tkt == tkt_endofline) {
             continue;
@@ -190,12 +190,16 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
             pos = try insertImplied(p, pos, ops.CLC);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLD")) {
             pos = try insertImplied(p, pos, ops.CLD);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLI")) {
+            pos = try insertImplied(p, pos, ops.CLI);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CLV")) {
             pos = try insertImplied(p, pos, ops.CLV);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "SEC")) {
             pos = try insertImplied(p, pos, ops.SEC);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "SED")) {
             pos = try insertImplied(p, pos, ops.SED);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "SEI")) {
+            pos = try insertImplied(p, pos, ops.SEI);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "NOP")) {
             pos = try insertImplied(p, pos, ops.NOP);
         } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "PHA")) {

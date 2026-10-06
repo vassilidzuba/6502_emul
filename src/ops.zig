@@ -52,6 +52,8 @@ pub const CLC = 0x18;
 
 pub const CLD = 0xD8;
 
+pub const CLI = 0x58;
+
 pub const CLV = 0xB8;
 
 pub const DEC_Z = 0xC6;
@@ -118,6 +120,8 @@ pub const RTS = 0x60;
 pub const SEC = 0x38;
 
 pub const SED = 0xF8;
+
+pub const SEI = 0x78;
 
 pub const STA_Z = 0x85;
 pub const STA_ZX = 0x95;
@@ -207,9 +211,9 @@ pub fn initOpTable() void {
 
     addOpTable(CLC, exec_CLC_I, "CLC");
 
-    addOpTable(CLC, exec_CLC_I, "CLC");
-
     addOpTable(CLD, exec_CLD_I, "CLD");
+
+    addOpTable(CLI, exec_CLI_I, "CLI");
 
     addOpTable(DEC_Z, exec_DEC_Z, "DEC_Z");
     addOpTable(DEC_ZX, exec_DEC_ZX, "DEC_ZX");
@@ -275,6 +279,8 @@ pub fn initOpTable() void {
     addOpTable(SEC, exec_SEC_I, "SEC");
 
     addOpTable(SED, exec_SED_I, "SED");
+
+    addOpTable(SEI, exec_SEI_I, "SEI");
 
     addOpTable(STA_Z, exec_STA_Z, "STA_Z");
     addOpTable(STA_ZX, exec_STA_ZX, "STA_ZX");
@@ -807,6 +813,13 @@ fn exec_CLD_I(p: *proc.Processor) OpsError!void {
     p.addTicks(2);
 }
 
+fn exec_CLI_I(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    p.setInterruptFlag(false);
+    p.addTicks(2);
+}
+
 fn exec_CLV_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
@@ -1262,6 +1275,13 @@ fn exec_SED_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.setDecimalFlag(true);
+    p.addTicks(2);
+}
+
+fn exec_SEI_I(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    p.setInterruptFlag(true);
     p.addTicks(2);
 }
 

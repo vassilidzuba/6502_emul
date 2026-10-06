@@ -25,6 +25,7 @@ Currently, the following opcodes are implemented and their tests are available:
     BVS
     CLC
     CLD
+    CLI
     CLV
     DEC
     DEX

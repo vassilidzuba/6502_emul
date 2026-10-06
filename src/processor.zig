@@ -176,6 +176,14 @@ pub const Processor = struct {
     pub inline fn setDecimalFlag(self: *Processor, val: bool) void {
         setFlag(self, FLAG_DECIMAL, val);
     }
+
+    pub inline fn getInterruptFlag(self: *Processor) bool {
+        return getFlag(self, FLAG_INTERRUPT);
+    }
+
+    pub inline fn setInterruptFlag(self: *Processor, val: bool) void {
+        setFlag(self, FLAG_INTERRUPT, val);
+    }
 };
 
 pub fn initProcessor(allocator: std.mem.Allocator, memsize: u16) !Processor {
