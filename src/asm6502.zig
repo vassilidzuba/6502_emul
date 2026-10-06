@@ -269,6 +269,28 @@ fn asm6502(p: *proc.Processor, creader: *cr.CharReader) !void {
 
             pos = try insertZeropage(&tk2, p, pos, ops.BIT_Z);
             pos = try insertAbsolute(&tk2, p, pos, ops.BIT_A);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "SBC")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertImmediate(&tk2, p, pos, ops.SBC_I);
+            pos = try insertZeropage(&tk2, p, pos, ops.SBC_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.SBC_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.SBC_A);
+            pos = try insertAbsoluteX(&tk2, p, pos, ops.SBC_AX);
+            pos = try insertAbsoluteY(&tk2, p, pos, ops.SBC_AY);
+            pos = try insertIndirectX(&tk2, p, pos, ops.SBC_IX);
+            pos = try insertIndirectY(&tk2, p, pos, ops.SBC_IY);
+        } else if (std.mem.eql(u8, tk.buf[0..tk.pos], "CMP")) {
+            const tk2: Token = try nextToken(creader);
+
+            pos = try insertImmediate(&tk2, p, pos, ops.CMP_I);
+            pos = try insertZeropage(&tk2, p, pos, ops.CMP_Z);
+            pos = try insertZeropageX(&tk2, p, pos, ops.CMP_ZX);
+            pos = try insertAbsolute(&tk2, p, pos, ops.CMP_A);
+            pos = try insertAbsoluteX(&tk2, p, pos, ops.CMP_AX);
+            pos = try insertAbsoluteY(&tk2, p, pos, ops.CMP_AY);
+            pos = try insertIndirectX(&tk2, p, pos, ops.CMP_IX);
+            pos = try insertIndirectY(&tk2, p, pos, ops.CMP_IY);
         } else {
             std.log.err("Unknown opcode: {s}", .{tk.buf[0..tk.pos]});
             return AsmErrors.unknownOpcode;
@@ -655,15 +677,19 @@ fn getLabel(labelList: *std.ArrayList(Label), label: []const u8) !*Label {
 }
 
 fn displayLabels(list: *std.ArrayList(Label)) void {
-    std.log.info("labels:", .{});
-    for (list.items) |ls| {
-        std.log.info("  label {s} at {X}", .{ ls.slice(), ls.addr });
-        for (ls.references.items) |x| {
-            var rel = "false";
-            if (x.relative) {
-                rel = "true ";
+    if (list.items.len == 0) {
+        std.log.info("no label defined.", .{});
+    } else {
+        std.log.info("labels:", .{});
+        for (list.items) |ls| {
+            std.log.info("  label {s} at {X}", .{ ls.slice(), ls.addr });
+            for (ls.references.items) |x| {
+                var rel = "false";
+                if (x.relative) {
+                    rel = "true ";
+                }
+                std.log.info("      {X}  relative={s}", .{ x.addr, rel });
             }
-            std.log.info("      {X}  relative={s}", .{ x.addr, rel });
         }
     }
 }

@@ -56,6 +56,15 @@ pub const CLI = 0x58;
 
 pub const CLV = 0xB8;
 
+pub const CMP_I = 0xC9;
+pub const CMP_Z = 0xC5;
+pub const CMP_ZX = 0xD5;
+pub const CMP_A = 0xCD;
+pub const CMP_AX = 0xDD;
+pub const CMP_AY = 0xD9;
+pub const CMP_IX = 0xC1;
+pub const CMP_IY = 0xD1;
+
 pub const DEC_Z = 0xC6;
 pub const DEC_ZX = 0xD6;
 pub const DEC_A = 0xCE;
@@ -116,6 +125,15 @@ pub const PLA = 0x68;
 pub const PLP = 0x28;
 
 pub const RTS = 0x60;
+
+pub const SBC_I = 0xE9;
+pub const SBC_Z = 0xE5;
+pub const SBC_ZX = 0xF5;
+pub const SBC_A = 0xED;
+pub const SBC_AX = 0xFD;
+pub const SBC_AY = 0xF9;
+pub const SBC_IX = 0xE1;
+pub const SBC_IY = 0xF1;
 
 pub const SEC = 0x38;
 
@@ -215,6 +233,15 @@ pub fn initOpTable() void {
 
     addOpTable(CLI, exec_CLI_I, "CLI");
 
+    addOpTable(CMP_I, exec_CMP_I, "CMP_I");
+    addOpTable(CMP_Z, exec_CMP_Z, "CMP_Z");
+    addOpTable(CMP_ZX, exec_CMP_ZX, "CMP_ZX");
+    addOpTable(CMP_A, exec_CMP_A, "CMP_A");
+    addOpTable(CMP_AX, exec_CMP_AX, "CMP_AX");
+    addOpTable(CMP_AY, exec_CMP_AY, "CMP_AY");
+    addOpTable(CMP_IX, exec_CMP_IX, "CMP_IX");
+    addOpTable(CMP_IY, exec_CMP_IY, "CMP_IY");
+
     addOpTable(DEC_Z, exec_DEC_Z, "DEC_Z");
     addOpTable(DEC_ZX, exec_DEC_ZX, "DEC_ZX");
     addOpTable(DEC_A, exec_DEC_A, "DEC_A");
@@ -275,6 +302,15 @@ pub fn initOpTable() void {
     addOpTable(PLP, exec_PLP_I, "PLP");
 
     addOpTable(RTS, exec_RTS_I, "RTS");
+
+    addOpTable(SBC_I, exec_SBC_I, "SBC_I");
+    addOpTable(SBC_Z, exec_SBC_Z, "SBC_Z");
+    addOpTable(SBC_ZX, exec_SBC_ZX, "SBC_ZX");
+    addOpTable(SBC_A, exec_SBC_A, "SBC_A");
+    addOpTable(SBC_AX, exec_SBC_AX, "SBC_AX");
+    addOpTable(SBC_AY, exec_SBC_AY, "SBC_AY");
+    addOpTable(SBC_IX, exec_SBC_IX, "SBC_IX");
+    addOpTable(SBC_IY, exec_SBC_IY, "SBC_IY");
 
     addOpTable(SEC, exec_SEC_I, "SEC");
 
@@ -827,6 +863,90 @@ fn exec_CLV_I(p: *proc.Processor) OpsError!void {
     p.addTicks(2);
 }
 
+fn exec_CMP(p: *proc.Processor, adr: usize) void {
+    var val: u8 = undefined;
+    if (adr == INVALID_ADDRESS) {
+        val = p.mem.mem[p.pc];
+        p.pc = p.pc + 1;
+    } else {
+        val = p.mem.mem[adr];
+    }
+
+    const val1 : u16 = @intCast(p.ac);
+    const val2 : u16 = @intCast(~ val);
+    var res = val1 + val2;
+    res = res + 1;
+
+    p.setZeroFlag(res == 0);
+    p.setCarryFlag((res & 0xFF00) != 0);
+    p.setNegativeFlag(res & 0b1000000000000000 != 0);
+}
+
+fn exec_CMP_I(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    exec_CMP(p, INVALID_ADDRESS);
+    p.addTicks(2);
+}
+
+fn exec_CMP_Z(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getZeropageAddress(p);
+    exec_CMP(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_CMP_ZX(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getZeropageXAddress(p);
+    exec_CMP(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_CMP_A(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteAddress(p);
+    exec_CMP(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_CMP_AX(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteXAddress(p);
+
+    std.log.info("address is {X}", .{adr});
+    exec_CMP(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_CMP_AY(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteYAddress(p);
+    exec_CMP(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_CMP_IX(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getIndirectXAddress(p);
+    exec_ADC(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_CMP_IY(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getIndirectYAddress(p);
+    exec_CMP(p, adr);
+    p.addTicks(2);
+}
+
 fn exec_DEC(p: *proc.Processor, adr: usize) void {
     var val: u16 = p.mem.mem[adr];
     if (val == 0) {
@@ -1268,6 +1388,96 @@ fn exec_SEC_I(p: *proc.Processor) OpsError!void {
     logOp(p);
     p.pc = p.pc + 1;
     p.setCarryFlag(true);
+    p.addTicks(2);
+}
+
+fn exec_SBC(p: *proc.Processor, adr: usize) void {
+    var val: u8 = undefined;
+    if (adr == INVALID_ADDRESS) {
+        val = p.mem.mem[p.pc];
+        p.pc = p.pc + 1;
+    } else {
+        val = p.mem.mem[adr];
+    }
+
+    const val1 : u16 = @intCast(p.ac);
+    const val2 : u16 = @intCast(~ val);
+    var res = val1 + val2;
+
+std.log.info(">>> {X} {X} {X}", .{val1, val2, res});
+
+    if (p.getCarryFlag()) {
+        res = res + 1;
+    }
+
+    p.ac = @intCast(res & 0x00FF);
+    p.setZeroFlag(res == 0);
+    p.setCarryFlag((res & 0xFF00) != 0);
+    p.setNegativeFlag(res & 0b1000000000000000 != 0);
+}
+
+fn exec_SBC_I(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    exec_SBC(p, INVALID_ADDRESS);
+    p.addTicks(2);
+}
+
+fn exec_SBC_Z(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getZeropageAddress(p);
+    exec_SBC(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_SBC_ZX(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getZeropageXAddress(p);
+    exec_SBC(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_SBC_A(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteAddress(p);
+    exec_SBC(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_SBC_AX(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteXAddress(p);
+
+    std.log.info("address is {X}", .{adr});
+    exec_SBC(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_SBC_AY(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getAbsoluteYAddress(p);
+    exec_SBC(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_SBC_IX(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getIndirectXAddress(p);
+    exec_SBC(p, adr);
+    p.addTicks(2);
+}
+
+fn exec_SBC_IY(p: *proc.Processor) OpsError!void {
+    logOp(p);
+    p.pc = p.pc + 1;
+    const adr = getIndirectYAddress(p);
+    exec_SBC(p, adr);
     p.addTicks(2);
 }
 

@@ -1,0 +1,28 @@
+; test CMP
+
+; cpompare $10 - $20
+
+LDA #$10
+SEC
+CMP #$20
+PHP
+PLA
+STA $1000
+
+; compare $20 - 20
+
+LDA #$20
+SEC
+CMP #$20
+PHP
+PLA
+STA $1001
+
+; comprta $20 - $30
+
+LDA #$20
+SEC
+CMP #$30
+PHP
+PLA
+STA $1002

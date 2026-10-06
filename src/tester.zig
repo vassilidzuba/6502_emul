@@ -73,6 +73,7 @@ fn runTestFromReader(io: std.Io, allocator: std.mem.Allocator, creader: *cr.Char
         } else if (std.mem.eql(u8, tk.slice(), "run") and enabled) {
             const tk2: Token = try nextToken(creader);
             p.reset();
+            std.log.info("Running {s}", .{tk2.slice()});
             try as.asm6502File(io, allocator, p, tk2.slice());
             const start = std.Io.Clock.awake.now(io);
             ops.run(p);

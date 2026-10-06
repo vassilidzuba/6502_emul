@@ -1,0 +1,318 @@
+; test SBC
+
+; test $30 - $10 = $20
+
+LDA #$30
+SEC
+SBC #$10
+STA $1000
+PHP
+PLA
+STA $1001
+
+; test $30 - $40 = $F0
+
+LDA #$30
+SEC
+SBC #$40
+STA $1002
+PHP
+PLA
+STA $1003
+
+; test $FO - $10 = $E0
+
+LDA #$F0
+SEC
+SBC #$10
+STA $1004
+PHP
+PLA
+STA $1005
+
+; test $20 - $20 = $00
+
+LDA #$20
+SEC
+SBC #$20
+STA $1006
+PHP
+PLA
+STA $1007
+
+; zeropage
+
+LDA #$10
+STA $10
+LDA #$30
+SEC
+SBC $10
+STA $2000
+PHP
+PLA
+STA $2001
+
+; test $30 - $40 = $F0
+
+LDA #$40
+STA $20
+LDA #$30
+SEC
+SBC $20
+STA $2002
+PHP
+PLA
+STA $2003
+
+; test $FO - $10 = $E0
+
+LDA #$10
+STA $30
+LDA #$F0
+SEC
+SBC $30
+STA $2004
+PHP
+PLA
+STA $2005
+
+; zeropage,X
+
+LDA #$10
+STA $11
+LDA #$30
+SEC
+LDX #$01
+SBC $10,X
+STA $3000
+PHP
+PLA
+STA $3001
+
+; test $30 - $40 = $F0
+
+LDA #$40
+STA $21
+LDA #$30
+SEC
+LDX #$01
+SBC $20,X
+STA $3002
+PHP
+PLA
+STA $3003
+
+; test $FO - $10 = $E0
+
+LDA #$10
+STA $31
+LDA #$F0
+SEC
+LDX #$01
+SBC $30,X
+STA $3004
+PHP
+PLA
+STA $3005
+
+
+; absolute
+
+LDA #$10
+STA $F000
+LDA #$30
+SEC
+SBC $F000
+STA $4000
+PHP
+PLA
+STA $4001
+
+; test $30 - $40 = $F0
+
+LDA #$40
+STA $F000
+LDA #$30
+SEC
+SBC $F000
+STA $4002
+PHP
+PLA
+STA $4003
+
+; test $FO - $10 = $E0
+
+LDA #$10
+STA $F000
+LDA #$F0
+SEC
+SBC $F000
+STA $4004
+PHP
+PLA
+STA $4005
+
+
+; absolute,X
+
+LDA #$10
+STA $F001
+LDA #$30
+SEC
+LDX #$01
+SBC $F000,X
+STA $5000
+PHP
+PLA
+STA $5001
+
+; test $30 - $40 = $F0
+
+LDA #$40
+STA $F001
+LDA #$30
+SEC
+LDX #$01
+SBC $F000,X
+STA $5002
+PHP
+PLA
+STA $5003
+
+; test $FO - $10 = $E0
+
+LDA #$10
+STA $F001
+LDA #$F0
+SEC
+LDX #$01
+SBC $F000,X
+STA $5004
+PHP
+PLA
+STA $5005
+
+; absolute,Y
+
+LDA #$10
+STA $F001
+LDA #$30
+SEC
+LDY #$01
+SBC $F000,Y
+STA $6000
+PHP
+PLA
+STA $6001
+
+; test $30 - $40 = $F0
+
+LDA #$40
+STA $F001
+LDA #$30
+SEC
+LDY #$01
+SBC $F000,Y
+STA $6002
+PHP
+PLA
+STA $6003
+
+; test $FO - $10 = $E0
+
+LDA #$10
+STA $F001
+LDA #$F0
+SEC
+LDY #$01
+SBC $F000,Y
+STA $6004
+PHP
+PLA
+STA $6005
+
+; indirect,X
+
+LDA #$00
+STA $18
+LDA #$F0
+STA $19
+LDX #$01
+
+LDA #$10
+STA ($18,X)
+LDA #$30
+SEC
+SBC ($18,X)
+STA $7000
+PHP
+PLA
+STA $7001
+
+; test $30 - $40 = $F0
+
+LDA #$40
+STA ($18,X)
+LDA #$30
+SEC
+LDY #$01
+SBC ($18,X)
+STA $7002
+PHP
+PLA
+STA $7003
+
+; test $FO - $10 = $E0
+
+LDA #$10
+STA ($18,X)
+LDA #$F0
+SEC
+SBC ($18,X)
+STA $7004
+PHP
+PLA
+STA $7005
+
+; (indirect),Y
+
+LDA #$00
+STA $18
+LDA #$F0
+STA $19
+LDY #$01
+
+LDA #$10
+STA ($18),Y
+LDA #$30
+SEC
+SBC ($18),Y
+STA $8000
+PHP
+PLA
+STA $8001
+
+; test $30 - $40 = $F0
+
+LDA #$40
+STA ($18),Y
+LDA #$30
+SEC
+LDY #$01
+SBC ($18),Y
+STA $8002
+PHP
+PLA
+STA $8003
+
+; test $FO - $10 = $E0
+
+LDA #$10
+STA ($18),Y
+LDA #$F0
+SEC
+SBC ($18),Y
+STA $8004
+PHP
+PLA
+STA $8005

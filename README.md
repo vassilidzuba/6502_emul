@@ -27,13 +27,14 @@ Currently, the following opcodes are implemented and their tests are available:
     CLD
     CLI
     CLV
+    CMP
     DEC
     DEX
     DEY
     INC
     INX
     INY
-    JMP (partiel)
+    JMP (without indirect adressing)
     JSR
     LDA
     LSR
@@ -43,6 +44,7 @@ Currently, the following opcodes are implemented and their tests are available:
     PLA
     PLP
     RTS
+    SBC
     SEC
     SED
     STA

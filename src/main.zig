@@ -25,6 +25,9 @@ pub fn main(init: std.process.Init) !void {
     ops.initOpTable();
 
     try tester.runTest(init.io, arena, "testdata/test1.test");
+
+    std.log.info("--------------------", .{});
+
 }
 
 

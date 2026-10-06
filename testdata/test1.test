@@ -201,6 +201,34 @@ run testdata/CLI.6502
 assert @0010 $14
 assert @0011 $10
 
-enable
 run testdata/SEI.6502
 assert @0010 $14
+
+run testdata/SBC.6502
+assert @1000 $20
+assert @1002 $F0
+assert @1004 $E0
+assert @2000 $20
+assert @2002 $F0
+assert @2004 $E0
+assert @3000 $20
+assert @3002 $F0
+assert @3004 $E0
+assert @4000 $20
+assert @4002 $F0
+assert @4004 $E0
+assert @5000 $20
+assert @5002 $F0
+assert @5004 $E0
+assert @6000 $20
+assert @6002 $F0
+assert @6004 $E0
+assert @7000 $20
+assert @7002 $F0
+assert @7004 $E0
+assert @8000 $20
+assert @8002 $F0
+assert @8004 $E0
+
+enable
+run testdata/CMP.6502
